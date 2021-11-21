@@ -6,6 +6,8 @@
 #include <getopt.h>
 #include <stdio.h>
 #include <errno.h>
+#include <endian.h>
+#include <stdint.h>
 
 #include "client-request.h"
 #include "server-reply.h"
