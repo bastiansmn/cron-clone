@@ -1,14 +1,15 @@
 CC      ?= gcc
 CFLAGS  ?= -Wall
 
+.PHONY: all
 
 all : cassini
 
-cassini : src/cassini.c
-    $(CC) $(CFLAGS) -o cassini cassini.c $@
+cassini : 
+	$(CC) $(CFLAGS) -Iinclude src/cassini.c -o cassini
 
 test :
 	bash run-cassini-tests.sh
 
-clean:
-	rm -r src/*.o
+distclean:
+	rm -r src/*.o cassini
