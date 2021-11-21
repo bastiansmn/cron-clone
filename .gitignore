@@ -2,5 +2,4 @@ saturnd
 cassini
 run/
 *.dSYM
-
-.vscode
+**/.vscode
