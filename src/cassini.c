@@ -19,36 +19,19 @@ const char usage_info[] = "\
      -p PIPES_DIR -> look for the pipes in PIPES_DIR (default: /tmp/<USERNAME>/saturnd/pipes)\n\
 ";
 
+
 typedef struct {
-	uint32_t L;
-	char s[L];
-} string;
-
-typedef struct{
-	uint16_t val;
-	uint16_t valconvert= htobe16(val);
-} uint16;
-
-typedef struct{
-	uint32_t val;
-	uint32_t valconvert= htobe32(val);
-} uint32;
-
-typedef struct{
-	uint64_t val;
-	uint64_t valconvert= htobe64(val);
-} uint64;
-
-typedef struct{
-	unit64 MINUTES;
-	unit32 HOURS;
-	unit8 DAYSOFWEEK;
-} timing;
+	int id;
+	timing t;
+} TASK;
 
 
+TASK taches[];
+int nbtaches=0;
 
 int main(int argc, char * argv[]) {
   errno = 0;
+  
   
   char * minutes_str = "*";
   char * hours_str = "*";
@@ -112,14 +95,12 @@ int main(int argc, char * argv[]) {
       goto error;
     }
   }
-
+  
+  
   // --------
   // | TODO |
-  switch (operation){
+  switch (operation) {
 	  case CLIENT_REQUEST_LIST_TASKS :
-	    //TODO
-	    break;
-	  case CLIENT_REQUEST_CREATE_TASK : 
 	    //TODO
 	    break;
 	  case CLIENT_REQUEST_CREATE_TASK : 
@@ -140,6 +121,7 @@ int main(int argc, char * argv[]) {
 	  case CLIENT_REQUEST_GET_STDERR:
 	    //TODO
 	    break;
+	}
   // --------
   
   return EXIT_SUCCESS;
@@ -151,3 +133,13 @@ int main(int argc, char * argv[]) {
   return EXIT_FAILURE;
 }
 
+
+void list_task(){
+	int tachesrestante=nbtaches;
+	int tacheaffiche=0;
+	while (tachesrestante>0){
+		printf("%d/n" , taches[tacheaffiche].id );
+		tacheaffiche++;
+		tachesrestante--;
+	}
+}
