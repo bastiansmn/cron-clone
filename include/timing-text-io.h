@@ -13,9 +13,9 @@
 // Main functions :
 
 int timing_from_strings(struct timing * dest, char * minutes_str, char * hours_str, char * daysofweek_str);
-/* Writes the result in *dest. In case of success, returns the number of characters read (>0). In
-   case of failure, returns 0. */
+/* Writes the result in *dest. In case of success, returns 0. In case of failure, returns -1. */
 
+Envoyer un message à @GoldenOuji
 int timing_string_from_timing(char * dest, const struct timing * timing);
 /* Writes a text representation of timing in the buffer pointed to by dest, and adds a trailing
    '\0'. The buffer must be able to hold at least TIMING_TEXT_MIN_BUFFERSIZE characters. Returns the
