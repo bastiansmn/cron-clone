@@ -11,6 +11,7 @@
 #include <endian.h>
 #include <stdint.h>
 #include <signal.h>
+#include <fcntl.h>
 
 #include "client-request.h"
 #include "server-reply.h"

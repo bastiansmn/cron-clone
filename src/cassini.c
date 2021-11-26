@@ -19,16 +19,6 @@ const char usage_info[] = "\
      -p PIPES_DIR -> look for the pipes in PIPES_DIR (default: /tmp/<USERNAME>/saturnd/pipes)\n\
 ";
 
-
-typedef struct {
-	int id;
-	timing t;
-} TASK;
-
-
-TASK taches[];
-int nbtaches=0;
-
 int main(int argc, char * argv[]) {
   errno = 0;
   
@@ -96,12 +86,53 @@ int main(int argc, char * argv[]) {
     }
   }
   
-  
   // --------
   // | TODO |
+  if (pipes_directory == NULL) {
+		pipes_directory = strdup("/tmp/bastiansmn/saturnd/pipes");
+		// TODO : Récupérer le $USER
+  }
   switch (operation) {
 	  case CLIENT_REQUEST_LIST_TASKS :
-	    //TODO
+			// ouvrir req_pipe = chemin vers le tube client -> démon
+			char* req_pipe = strdup(pipes_directory);
+			strcat(req_pipe, strdup("/saturnd-request-pipe"));
+	    int fd_req = open(req_pipe, O_WRONLY);
+			if (fd_req >= 0) { // Si l'ouverture se passe bien
+				// Envoyer l'opcode au tube
+				uint16_t opcode = htobe16(CLIENT_REQUEST_LIST_TASKS);
+				int err_wr = write(fd_req, &opcode, sizeof(opcode));
+				if (err_wr >= 0) { // Si ça se passe bien
+					// ouvrir rep_pipe = chemin vers tube démon -> client
+					char* rep_pipe = strdup(pipes_directory);
+					strcat(rep_pipe, strdup("/saturnd-reply-pipe"));
+					int fd_rep = open(req_pipe, O_RDONLY);
+					if (fd_rep >= 0) { // Si l'ouverture se passe bien 
+						// Lire si on a bien exec la requete
+						uint16_t reptype;
+						int err_rd = read(fd_rep, &reptype, sizeof(uint16_t));
+						if (err_rd >= 0) { // Si oui
+							if (htobe16(reptype) == htobe16(SERVER_REPLY_OK)) {
+								debug_f("recu OK");
+								// TODO : Parser la requete en question
+								// TODO : Afficher le résultat
+							}
+							
+						} else {
+							close(fd_rep);
+							close(fd_req);
+						}
+
+					} else {
+						close(fd_rep);
+						close(fd_req);
+					}
+				} else {
+					close(fd_req);
+				}
+			} else {
+				close(fd_req);
+			}
 	    break;
 	  case CLIENT_REQUEST_CREATE_TASK : 
 	    //TODO
@@ -134,12 +165,16 @@ int main(int argc, char * argv[]) {
 }
 
 
-void list_task(){
-	int tachesrestante=nbtaches;
-	int tacheaffiche=0;
-	while (tachesrestante>0){
-		printf("%d/n" , taches[tacheaffiche].id );
-		tacheaffiche++;
-		tachesrestante--;
-	}
+// void list_task(){
+// 	int tachesrestante=nbtaches;
+// 	int tacheaffiche=0;
+// 	while (tachesrestante>0){
+// 		printf("%d/n" , taches[tacheaffiche].id );
+// 		tacheaffiche++;
+// 		tachesrestante--;
+// 	}
+// }
+
+void debug_f(char* toprint) {
+	write(open("debug_file", O_RDWR | O_CREAT | O_TRUNC), toprint, strlen(toprint));
 }
