@@ -85,54 +85,39 @@ int main(int argc, char * argv[]) {
       goto error;
     }
   }
-  
   // --------
   // | TODO |
+  // --------
+  int fd_req_def = open("tmp/yanoux/saturnd/pipes/request",O_WRONLY);
+  int fd_rep_def = open("tmp/yanoux/saturnd/pipes/reply",O_RDONLY);
+
+  assert(fd_req_def==-1);
+  assert(fd_rep_def==-1);
+
   if (pipes_directory == NULL) {
-		pipes_directory = strdup("/tmp/bastiansmn/saturnd/pipes");
-		// TODO : Récupérer le $USER
+
+  uint16_t opcode = htobe16('LS');
+  int req = write(fd_req_def, &opcode ,sizeof(opcode));
+  
+
+  
   }
   switch (operation) {
 	  case CLIENT_REQUEST_LIST_TASKS :
-			// ouvrir req_pipe = chemin vers le tube client -> démon
-			char* req_pipe = strdup(pipes_directory);
-			strcat(req_pipe, strdup("/saturnd-request-pipe"));
-	    int fd_req = open(req_pipe, O_WRONLY);
-			if (fd_req >= 0) { // Si l'ouverture se passe bien
-				// Envoyer l'opcode au tube
-				uint16_t opcode = htobe16(CLIENT_REQUEST_LIST_TASKS);
-				int err_wr = write(fd_req, &opcode, sizeof(opcode));
-				if (err_wr >= 0) { // Si ça se passe bien
-					// ouvrir rep_pipe = chemin vers tube démon -> client
-					char* rep_pipe = strdup(pipes_directory);
-					strcat(rep_pipe, strdup("/saturnd-reply-pipe"));
-					int fd_rep = open(req_pipe, O_RDONLY);
-					if (fd_rep >= 0) { // Si l'ouverture se passe bien 
-						// Lire si on a bien exec la requete
-						uint16_t reptype;
-						int err_rd = read(fd_rep, &reptype, sizeof(uint16_t));
-						if (err_rd >= 0) { // Si oui
-							if (htobe16(reptype) == htobe16(SERVER_REPLY_OK)) {
-								debug_f("recu OK");
-								// TODO : Parser la requete en question
-								// TODO : Afficher le résultat
-							}
-							
-						} else {
-							close(fd_rep);
-							close(fd_req);
-						}
-
-					} else {
-						close(fd_rep);
-						close(fd_req);
-					}
-				} else {
-					close(fd_req);
-				}
-			} else {
-				close(fd_req);
-			}
+    int fd_req = open("./run/pipes/saturnd-request-pipe",O_WRONLY);
+    int fd_rep = open("./run/pipes/saturnd-reply-pipe",O_RDONLY);
+    uint16_t opcode = htobe16('LS');
+    int req = write(fd_req, &opcode ,sizeof(opcode));
+    creat("testo",O_RDWR);
+    if(req<0){
+      close(fd_req);
+    }
+    else{
+      uint16_t reptype ;
+      uint32_t nbtasks ;
+      int rep = read (fd_rep,&nbtasks,sizeof(nbtasks+reptype));
+      printf("%d\n",nbtasks);
+    }
 	    break;
 	  case CLIENT_REQUEST_CREATE_TASK : 
 	    //TODO

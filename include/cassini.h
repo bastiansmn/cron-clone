@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include <signal.h>
 #include <fcntl.h>
+#include <assert.h>
 
 #include "client-request.h"
 #include "server-reply.h"
