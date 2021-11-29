@@ -99,8 +99,6 @@ int main(int argc, char * argv[]) {
   uint16_t opcode = htobe16('LS');
   int req = write(fd_req_def, &opcode ,sizeof(opcode));
   
-
-  
   }
   switch (operation) {
 	  case CLIENT_REQUEST_LIST_TASKS :
@@ -108,15 +106,59 @@ int main(int argc, char * argv[]) {
     int fd_rep = open("./run/pipes/saturnd-reply-pipe",O_RDONLY);
     uint16_t opcode = htobe16('LS');
     int req = write(fd_req, &opcode ,sizeof(opcode));
-    creat("testo",O_RDWR);
     if(req<0){
       close(fd_req);
     }
     else{
       uint16_t reptype ;
       uint32_t nbtasks ;
-      int rep = read (fd_rep,&nbtasks,sizeof(nbtasks+reptype));
-      printf("%d\n",nbtasks);
+      read (fd_rep,&reptype,sizeof(reptype));
+      read (fd_rep,&nbtasks,sizeof(nbtasks));
+      
+      if(htobe16(reptype)==SERVER_REPLY_ERROR){
+        close(fd_rep);
+        goto error;
+      }
+      else{
+        uint64_t id ;
+        uint64_t minutes;
+        uint32_t hours ;
+        uint8_t days ;
+        uint32_t argccmd;
+        struct stringc* argvcmd ;
+        if(htobe32(nbtasks)<0){
+          close(fd_rep);
+          goto error;
+        }
+        else{
+          for(uint32_t i = 0 ; i< htobe32(nbtasks);i++){
+            printf("%li",htobe16(reptype));
+            
+            printf("%li",htobe64(read(fd_rep,&id,sizeof(id))));
+
+            printf("%li",htobe64(read(fd_rep,&minutes,sizeof(minutes))));
+
+            printf("%li",htobe32(read(fd_rep,&hours,sizeof(hours))));
+
+            printf("%li",read(fd_rep,&days,sizeof(days)));
+
+            read(fd_rep,&argccmd,sizeof(argccmd));
+            argccmd = htobe32(argccmd) ;
+            
+            //lire chaque commande   
+            for(unsigned int i = 0 ; i<argccmd ; i++){
+              int strlength ;
+              read(fd_rep,&strlength ,sizeof(strlength));
+              strlength = htobe32(strlength);
+              char* data = malloc(strlength);
+              read(fd_rep,data,strlength);
+              printf("%s",data);
+              free(data);
+            }
+          }
+        }
+        close(fd_rep);
+      }
     }
 	    break;
 	  case CLIENT_REQUEST_CREATE_TASK : 
@@ -126,7 +168,10 @@ int main(int argc, char * argv[]) {
 	    //TODO
 	    break;
 	  case CLIENT_REQUEST_REMOVE_TASK :
-	    //TODO
+      uint16_t reptype ;
+      uint16_t taskid ;
+
+
 	    break;
 	  case CLIENT_REQUEST_GET_TIMES_AND_EXITCODES :
 	    //TODO
