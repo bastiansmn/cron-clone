@@ -7,9 +7,14 @@
 #include <stdio.h>
 #include <errno.h>
 #include <stdint.h>
+#include <unistd.h>
 #include <endian.h>
 #include <stdint.h>
-
+#include <signal.h>
+#include <fcntl.h>
+#include <assert.h>
+#include <stringc.h>
+#include <command-line.h>
 #include "client-request.h"
 #include "server-reply.h"
 
