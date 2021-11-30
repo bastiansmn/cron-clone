@@ -56,12 +56,12 @@ int main(int argc, char * argv[]) {
       break;
     case 'c':
       operation = CLIENT_REQUEST_CREATE_TASK;
-    int ind_temp = optind - 1;
-    while (*argv[ind_temp] == '-') {
-      ind_temp += 2;
-    }
-    index_of_command = ind_temp;
-    len_of_command = argc - index_of_command;
+			int ind_temp = optind - 1;
+			while (*argv[ind_temp] == '-') {
+				ind_temp += 2;
+			}
+			index_of_command = ind_temp;
+			len_of_command = argc - index_of_command;
       break;
     case 'q':
       operation = CLIENT_REQUEST_TERMINATE;
@@ -138,7 +138,6 @@ int main(int argc, char * argv[]) {
           uint32_t hours ;
           uint8_t days ;
           uint32_t argccmd;
-          struct stringc* argvcmd ;
           if (htobe32(nbtasks)<0) {
             close(fd_rep);
             goto error;
@@ -173,8 +172,8 @@ int main(int argc, char * argv[]) {
         }
       }
       break;
-    case CLIENT_REQUEST_CREATE_TASK :
-      timing time;
+    case CLIENT_REQUEST_CREATE_TASK :			
+			timing time;
       if (timing_from_strings(&time, minutes_str, hours_str, daysofweek_str) == -1) {
         goto error;
       }
@@ -183,19 +182,22 @@ int main(int argc, char * argv[]) {
       // TODO : Mieux parse cmd
       commandline cmd;
       cmd.argc = len_of_command;
-      cmd.argv = argv[index_of_command];
+      cmd.argv = argv[optind];
       // TODO : Utiliser des memmove
-      int err_write;
-      err_write = write(fd_req, &opcode, sizeof(opcode));
-      err_write = write(fd_req, &time, sizeof(time));
-      err_write = write(fd_req, &cmd, sizeof(cmd));
+      write(fd_req, &opcode, sizeof(opcode));
+      write(fd_req, &time, sizeof(time));
+      write_cmd(cmd,fd_req);
+
+      uint16_t reptype ;
+      uint64_t taskid ;
+      read(fd_rep,&reptype,sizeof(reptype));
+      read(fd_rep,&taskid,sizeof(taskid));
       break;
     case CLIENT_REQUEST_TERMINATE :
       //TODO
       break;
     case CLIENT_REQUEST_REMOVE_TASK :
-      uint16_t reptype ;
-      uint16_t taskid ;
+	 
 
 
       break;
@@ -219,8 +221,4 @@ int main(int argc, char * argv[]) {
   free(pipes_directory);
   pipes_directory = NULL;
   return EXIT_FAILURE;
-}
-
-void debug_f(char* toprint) {
-  write(open("debug_file", O_RDWR | O_CREAT | O_TRUNC), toprint, strlen(toprint));
 }
