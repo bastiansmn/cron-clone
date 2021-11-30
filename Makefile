@@ -3,13 +3,13 @@ CFLAGS  ?= -Wall
 
 .PHONY: all
 
-all : cassini
+all : distclean cassini test
 
 cassini : 
-	$(CC) $(CFLAGS) -Iinclude src/cassini.c -o cassini
+	$(CC) $(CFLAGS) -Iinclude src/*.c -o cassini
 
 test :
 	bash run-cassini-tests.sh
 
 distclean:
-	rm -r src/*.o cassini
+	rm -rf src/*.o cassini

@@ -6,7 +6,7 @@
 
 typedef struct commandline {
     uint32_t argc;
-    struct stringc* argv;// on peut aussi utiliser "string* argv" c'est pareil
+    struct stringv* argv;// on peut aussi utiliser "string* argv" c'est pareil
     /*pas besoin de decouper car il existe deja optarg donc on peut utiliser directement
      * argv+optarg et argc-optarg pour avoir la commande a envoyer(regarde exemple telephone) */
 } commandline ;
