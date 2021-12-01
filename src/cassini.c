@@ -33,8 +33,8 @@ int main(int argc, char * argv[]) {
   
   int opt;
   char * strtoull_endp;
-  int index_of_command;
-  int len_of_command;
+  int cmd_len;
+  int cmd_ind;
 
   while ((opt = getopt(argc, argv, "hlcqm:H:d:p:r:x:o:e:")) != -1) {
     switch (opt) {
@@ -56,12 +56,8 @@ int main(int argc, char * argv[]) {
       break;
     case 'c':
       operation = CLIENT_REQUEST_CREATE_TASK;
-			int ind_temp = optind - 1;
-			while (*argv[ind_temp] == '-') {
-				ind_temp += 2;
-			}
-			index_of_command = ind_temp;
-			len_of_command = argc - index_of_command;
+			cmd_len = argc - optind;
+			cmd_ind = optind;
       break;
     case 'q':
       operation = CLIENT_REQUEST_TERMINATE;
@@ -173,21 +169,19 @@ int main(int argc, char * argv[]) {
       }
       break;
     case CLIENT_REQUEST_CREATE_TASK :			
-			timing time;
+		timing time;
       if (timing_from_strings(&time, minutes_str, hours_str, daysofweek_str) == -1) {
         goto error;
       }
       time.hours = htobe32(time.hours);
       time.minutes = htobe64(time.minutes);
       // TODO : Mieux parse cmd
-      commandline cmd;
-      cmd.argc = len_of_command;
-      cmd.argv = argv[optind];
+			commandline cmd;
+			parse_cmd(&cmd, cmd_len, argv, cmd_ind);
+    
       // TODO : Utiliser des memmove
       write(fd_req, &opcode, sizeof(opcode));
       write(fd_req, &time, sizeof(time));
-      write_cmd(cmd,fd_req);
-
       uint16_t reptype ;
       uint64_t taskid ;
       read(fd_rep,&reptype,sizeof(reptype));
@@ -221,4 +215,15 @@ int main(int argc, char * argv[]) {
   free(pipes_directory);
   pipes_directory = NULL;
   return EXIT_FAILURE;
+}
+
+void parse_cmd(commandline* cmd, int size, char* *data, int index_of_cmd) {
+	cmd = malloc(sizeof(commandline));
+	cmd -> argc = size;
+	for (int i = 0; i < size; i++) {
+		stringc* tmp = malloc(sizeof(stringc));
+		tmp -> L = strlen(data[index_of_cmd+i]);
+		tmp -> val = data[index_of_cmd+i];
+		// TODO Trouver moyen de faire pointer cmd -> argv[i] vers tmp
+	}
 }
