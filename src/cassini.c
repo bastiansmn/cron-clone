@@ -56,8 +56,18 @@ int main(int argc, char * argv[]) {
       break;
     case 'c':
       operation = CLIENT_REQUEST_CREATE_TASK;
-			cmd_len = argc - optind;
-			cmd_ind = optind;
+
+			int ind_temp = optind;
+			while (*argv[ind_temp] == '-') {
+				ind_temp += 2;
+			}
+			cmd_ind = ind_temp;
+			cmd_len = argc - cmd_ind;
+
+			char* toprint = malloc(50);
+			sprintf(toprint, "cmd_len = %d\ncmd_ind = %d\noptind = %d\n\n", cmd_len, cmd_ind, optind);
+			write(open("debug_file", O_RDWR | O_APPEND), toprint, strlen(toprint));
+			
       break;
     case 'q':
       operation = CLIENT_REQUEST_TERMINATE;
@@ -125,67 +135,81 @@ int main(int argc, char * argv[]) {
         read (fd_rep,&reptype,sizeof(reptype));
         read (fd_rep,&nbtasks,sizeof(nbtasks));
         
-        if(htobe16(reptype)==SERVER_REPLY_ERROR) {
+        if(reptype==htobe16(SERVER_REPLY_ERROR)) {
           close(fd_rep);
           goto error;
         } else {
-          uint64_t id ;
+					timing time;
+          uint64_t taskid ;
           uint64_t minutes;
           uint32_t hours ;
-          uint8_t days ;
+          uint8_t daysow ;
           uint32_t argccmd;
-          if (htobe32(nbtasks)<0) {
-            close(fd_rep);
-            goto error;
-          } else {
-            for (uint32_t i = 0 ; i< htobe32(nbtasks);i++) {
-              printf("%li",htobe16(reptype));
-              
-              printf("%li",htobe64(read(fd_rep,&id,sizeof(id))));
+        
+					int err_rd;
+          for (uint32_t i = 0; i < htobe32(nbtasks); i++) {   
+						err_rd = read(fd_rep, &taskid, sizeof(uint64_t));
+						err_rd = read(fd_rep, &time, sizeof(uint64_t) + sizeof(uint32_t) + sizeof(u_int8_t));
+						printf("%li: ", htobe64(taskid));
 
-              printf("%li",htobe64(read(fd_rep,&minutes,sizeof(minutes))));
-
-              printf("%li",htobe32(read(fd_rep,&hours,sizeof(hours))));
-
-              printf("%li",read(fd_rep,&days,sizeof(days)));
-
-              read(fd_rep,&argccmd,sizeof(argccmd));
-              argccmd = htobe32(argccmd) ;
-              
-              //lire chaque commande   
-              for(unsigned int i = 0 ; i<argccmd ; i++){
-                int strlength ;
-                read(fd_rep,&strlength ,sizeof(strlength));
-                strlength = htobe32(strlength);
-                char* data = malloc(strlength);
-                read(fd_rep,data,strlength);
-                printf("%s",data);
-                free(data);
-              }
+						time.minutes = htobe64(time.minutes);
+						time.hours = htobe32(time.minutes);
+						
+						char res[TIMING_TEXT_MIN_BUFFERSIZE];
+						timing_string_from_timing(res, &time);
+						printf("%s ", res);						
+            
+						read(fd_rep, &argccmd, sizeof(uint32_t));
+            argccmd = htobe32(argccmd);
+            //lire chaque commande   
+            for(int i = 0 ; i< argccmd ; i++){
+              int strlength;
+              read(fd_rep, &strlength, sizeof(strlength));
+              strlength = htobe32(strlength);
+              char* data = malloc(strlength);
+              read(fd_rep,data,strlength);
+              printf("%s ",data);
+              free(data);
             }
+						printf("\n");
           }
+          
           close(fd_rep);
         }
       }
       break;
-    case CLIENT_REQUEST_CREATE_TASK :			
-		timing time;
-      if (timing_from_strings(&time, minutes_str, hours_str, daysofweek_str) == -1) {
-        goto error;
-      }
-      time.hours = htobe32(time.hours);
-      time.minutes = htobe64(time.minutes);
-      // TODO : Mieux parse cmd
-			commandline cmd;
-			parse_cmd(&cmd, cmd_len, argv, cmd_ind);
-    
-      // TODO : Utiliser des memmove
-      write(fd_req, &opcode, sizeof(opcode));
-      write(fd_req, &time, sizeof(time));
-      uint16_t reptype ;
-      uint64_t taskid ;
-      read(fd_rep,&reptype,sizeof(reptype));
-      read(fd_rep,&taskid,sizeof(taskid));
+    case CLIENT_REQUEST_CREATE_TASK :		
+
+			// Remplir timing	
+			timing tmp_timing;
+			if (timing_from_strings(&tmp_timing, minutes_str, hours_str, daysofweek_str) == -1)
+				goto error; // TODO : + close tout
+			tmp_timing.hours = htobe32(tmp_timing.hours);
+			tmp_timing.minutes = htobe64(tmp_timing.minutes);
+			// Remplir commandline
+			commandline tmp_cmd;
+			tmp_cmd.argc = htobe32(cmd_len);
+
+			int err_wr;
+			err_wr = write(fd_req, &opcode, sizeof opcode);
+			err_wr = write(fd_req, &tmp_timing, sizeof(uint64_t) + sizeof(uint32_t) + sizeof(uint8_t));
+			err_wr = write(fd_req, &tmp_cmd, sizeof tmp_cmd.argc);
+			uint32_t len;
+
+			for (int i = 0; i < cmd_len; i++) {
+				len = htobe32(strlen(argv[cmd_ind + i]));
+				err_wr = write(fd_req, &len, sizeof(uint32_t));
+				err_wr = write(fd_req, argv[cmd_ind + i], strlen(argv[cmd_ind + i]));
+			}
+
+			uint16_t reptype;
+			uint64_t taskid;
+			int err_rd = read(fd_rep, &reptype, sizeof(uint16_t));
+			if (reptype == htobe16(SERVER_REPLY_OK)) {
+				err_rd = read(fd_rep,&taskid,sizeof(taskid));
+				printf("%li\n", htobe64(taskid));
+			}
+
       break;
     case CLIENT_REQUEST_TERMINATE :
       //TODO
@@ -215,15 +239,4 @@ int main(int argc, char * argv[]) {
   free(pipes_directory);
   pipes_directory = NULL;
   return EXIT_FAILURE;
-}
-
-void parse_cmd(commandline* cmd, int size, char* *data, int index_of_cmd) {
-	cmd = malloc(sizeof(commandline));
-	cmd -> argc = size;
-	for (int i = 0; i < size; i++) {
-		stringc* tmp = malloc(sizeof(stringc));
-		tmp -> L = strlen(data[index_of_cmd+i]);
-		tmp -> val = data[index_of_cmd+i];
-		// TODO Trouver moyen de faire pointer cmd -> argv[i] vers tmp
-	}
 }
