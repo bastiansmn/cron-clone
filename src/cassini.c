@@ -150,25 +150,25 @@ int main(int argc, char * argv[]) {
           for (uint32_t i = 0; i < htobe32(nbtasks); i++) {   
 						err_rd = read(fd_rep, &taskid, sizeof(uint64_t));
 						err_rd = read(fd_rep, &time, sizeof(uint64_t) + sizeof(uint32_t) + sizeof(u_int8_t));
-						printf("%li: ", htobe64(taskid));
+						printf("%li:", htobe64(taskid));
 
 						time.minutes = htobe64(time.minutes);
-						time.hours = htobe32(time.minutes);
+						time.hours = htobe32(time.hours);
 						
 						char res[TIMING_TEXT_MIN_BUFFERSIZE];
 						timing_string_from_timing(res, &time);
-						printf("%s ", res);						
+						printf(" %s", res);			
             
 						read(fd_rep, &argccmd, sizeof(uint32_t));
             argccmd = htobe32(argccmd);
             //lire chaque commande   
-            for(int i = 0 ; i< argccmd ; i++){
+            for(int j = 0 ; j< argccmd ; j++){
               int strlength;
               read(fd_rep, &strlength, sizeof(strlength));
               strlength = htobe32(strlength);
               char* data = malloc(strlength);
               read(fd_rep,data,strlength);
-              printf("%s ",data);
+              printf(" %s", data);
               free(data);
             }
 						printf("\n");
@@ -206,7 +206,7 @@ int main(int argc, char * argv[]) {
 			uint64_t taskid;
 			int err_rd = read(fd_rep, &reptype, sizeof(uint16_t));
 			if (reptype == htobe16(SERVER_REPLY_OK)) {
-				err_rd = read(fd_rep,&taskid,sizeof(taskid));
+				err_rd = read(fd_rep,&taskid,sizeof(uint64_t));
 				printf("%li\n", htobe64(taskid));
 			}
 
