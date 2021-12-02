@@ -140,13 +140,12 @@ int main(int argc, char * argv[]) {
           goto error;
         } else {
 					timing time;
-          uint64_t taskid ;
           uint64_t minutes;
           uint32_t hours ;
           uint8_t daysow ;
           uint32_t argccmd;
-        
 					int err_rd;
+
           for (uint32_t i = 0; i < htobe32(nbtasks); i++) {   
 						err_rd = read(fd_rep, &taskid, sizeof(uint64_t));
 						err_rd = read(fd_rep, &time, sizeof(uint64_t) + sizeof(uint32_t) + sizeof(u_int8_t));
@@ -166,7 +165,7 @@ int main(int argc, char * argv[]) {
               int strlength;
               read(fd_rep, &strlength, sizeof(strlength));
               strlength = htobe32(strlength);
-              char* data = malloc(strlength);
+              char* data = malloc(strlength+1);
               read(fd_rep,data,strlength);
               printf(" %s", data);
               free(data);
@@ -203,7 +202,6 @@ int main(int argc, char * argv[]) {
 			}
 
 			uint16_t reptype;
-			uint64_t taskid;
 			int err_rd = read(fd_rep, &reptype, sizeof(uint16_t));
 			if (reptype == htobe16(SERVER_REPLY_OK)) {
 				err_rd = read(fd_rep,&taskid,sizeof(uint64_t));
@@ -215,10 +213,11 @@ int main(int argc, char * argv[]) {
       //TODO
       break;
     case CLIENT_REQUEST_REMOVE_TASK :
-	 
-
-
+    taskid = htobe64(taskid);
+    write(fd_req,&opcode,sizeof(opcode));
+    write(fd_req,&taskid,sizeof(taskid));  
       break;
+
     case CLIENT_REQUEST_GET_TIMES_AND_EXITCODES :
       //TODO
       break;
