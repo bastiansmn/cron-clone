@@ -11,6 +11,7 @@
 #include <endian.h>
 #include <stdint.h>
 #include <signal.h>
+#include <time.h>
 #include <fcntl.h>
 #include <assert.h>
 #include <stringc.h>

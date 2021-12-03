@@ -188,7 +188,6 @@ int main(int argc, char * argv[]) {
 			// Remplir commandline
 			commandline tmp_cmd;
 			tmp_cmd.argc = htobe32(cmd_len);
-
 			int err_wr;
 			err_wr = write(fd_req, &opcode, sizeof opcode);
 			err_wr = write(fd_req, &tmp_timing, sizeof(uint64_t) + sizeof(uint32_t) + sizeof(uint8_t));
@@ -219,7 +218,28 @@ int main(int argc, char * argv[]) {
       break;
 
     case CLIENT_REQUEST_GET_TIMES_AND_EXITCODES :
-      //TODO
+    taskid = htobe64(taskid);
+    write(fd_req,&opcode,sizeof(opcode));
+    write(fd_req,&taskid,sizeof(taskid)); 
+    uint32_t nbruns ;
+    read(fd_rep,&reptype,sizeof(reptype));
+    read(fd_rep,&nbruns, sizeof(nbruns));
+    nbruns = htobe32(nbruns);
+    int64_t time;
+    int16_t exitcode;
+    time_t rawtime ;
+    char buf[80];
+    for (uint32_t i = 0; i < nbruns; i++) {   
+      read(fd_rep, &time, sizeof(int64_t));
+      read(fd_rep, &exitcode, sizeof(int16_t));
+      time_t rawtime = htobe64(time);
+        struct tm ts;
+
+        ts = *localtime((&rawtime));
+        strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S ", &ts);
+        printf("%s", buf);
+        printf("%li\n",(taskid));
+    }
       break;
     case CLIENT_REQUEST_GET_STDOUT:
       //TODO
@@ -239,3 +259,5 @@ int main(int argc, char * argv[]) {
   pipes_directory = NULL;
   return EXIT_FAILURE;
 }
+
+
