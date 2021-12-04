@@ -210,6 +210,8 @@ int main(int argc, char * argv[]) {
 
       break;
     case CLIENT_REQUEST_TERMINATE :
+      write(fd_req, &opcode, sizeof(opcode));
+      read (fd_rep,&reptype,sizeof(reptype));
       break;
     case CLIENT_REQUEST_REMOVE_TASK :
       taskid = htobe64(taskid);
