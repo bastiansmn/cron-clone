@@ -141,15 +141,11 @@ int main(int argc, char * argv[]) {
           goto error;
         } else {
 					timing time;
-          uint64_t minutes;
-          uint32_t hours ;
-          uint8_t daysow ;
           uint32_t argccmd;
-					int err_rd;
 
           for (uint32_t i = 0; i < htobe32(nbtasks); i++) {   
-						err_rd = read(fd_rep, &taskid, sizeof(uint64_t));
-						err_rd = read(fd_rep, &time, sizeof(uint64_t) + sizeof(uint32_t) + sizeof(u_int8_t));
+		        read(fd_rep, &taskid, sizeof(uint64_t));
+		        read(fd_rep, &time, sizeof(uint64_t) + sizeof(uint32_t) + sizeof(u_int8_t));
 						printf("%li:", htobe64(taskid));
 
 						time.minutes = htobe64(time.minutes);
@@ -189,22 +185,21 @@ int main(int argc, char * argv[]) {
 			// Remplir commandline
 			commandline tmp_cmd;
 			tmp_cmd.argc = htobe32(cmd_len);
-			int err_wr;
-			err_wr = write(fd_req, &opcode, sizeof opcode);
-			err_wr = write(fd_req, &tmp_timing, sizeof(uint64_t) + sizeof(uint32_t) + sizeof(uint8_t));
-			err_wr = write(fd_req, &tmp_cmd, sizeof tmp_cmd.argc);
+			write(fd_req, &opcode, sizeof opcode);
+			write(fd_req, &tmp_timing, sizeof(uint64_t) + sizeof(uint32_t) + sizeof(uint8_t));
+			write(fd_req, &tmp_cmd, sizeof tmp_cmd.argc);
 			uint32_t len;
 
 			for (int i = 0; i < cmd_len; i++) {
 				len = htobe32(strlen(argv[cmd_ind + i]));
-				err_wr = write(fd_req, &len, sizeof(uint32_t));
-				err_wr = write(fd_req, argv[cmd_ind + i], strlen(argv[cmd_ind + i]));
+				write(fd_req, &len, sizeof(uint32_t));
+				write(fd_req, argv[cmd_ind + i], strlen(argv[cmd_ind + i]));
 			}
 
 			uint16_t reptype;
-			int err_rd = read(fd_rep, &reptype, sizeof(uint16_t));
+			read(fd_rep, &reptype, sizeof(uint16_t));
 			if (reptype == htobe16(SERVER_REPLY_OK)) {
-				err_rd = read(fd_rep,&taskid,sizeof(uint64_t));
+        read(fd_rep,&taskid,sizeof(uint64_t));
 				printf("%li\n", htobe64(taskid));
 			}
 
@@ -235,7 +230,7 @@ int main(int argc, char * argv[]) {
         for (uint32_t i = 0; i < nbruns; i++) {   
           read(fd_rep, &time, sizeof(int64_t));
           read(fd_rep, &exitcode, sizeof(int16_t));
-          time_t rawtime = htobe64(time);
+          rawtime = htobe64(time);
           struct tm ts;
           ts = *localtime((&rawtime));
           strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S ", &ts);
@@ -255,7 +250,6 @@ int main(int argc, char * argv[]) {
       write(fd_req,&taskid,sizeof(taskid));
       read(fd_rep,&reptype,sizeof(reptype));
       if(reptype==htobe16(SERVER_REPLY_OK)){
-        stringc output ;
         uint32_t L ;
         char* res = malloc(L);
         read(fd_rep,&L,sizeof(L));
