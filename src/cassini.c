@@ -105,6 +105,7 @@ int main(int argc, char * argv[]) {
   // --------	
   
 
+  uint16_t reptype ;
   int fd_req, fd_rep;
   if (pipes_directory == NULL) {
     char req_pipe[50];
@@ -130,7 +131,7 @@ int main(int argc, char * argv[]) {
       if (req<0) {
         close(fd_req);
       } else {
-        uint16_t reptype ;
+        
         uint32_t nbtasks ;
         read (fd_rep,&reptype,sizeof(reptype));
         read (fd_rep,&nbtasks,sizeof(nbtasks));
@@ -209,44 +210,83 @@ int main(int argc, char * argv[]) {
 
       break;
     case CLIENT_REQUEST_TERMINATE :
-      //TODO
       break;
     case CLIENT_REQUEST_REMOVE_TASK :
-    taskid = htobe64(taskid);
-    write(fd_req,&opcode,sizeof(opcode));
-    write(fd_req,&taskid,sizeof(taskid));  
+      taskid = htobe64(taskid);
+      write(fd_req,&opcode,sizeof(opcode));
+      write(fd_req,&taskid,sizeof(taskid));  
       break;
 
     case CLIENT_REQUEST_GET_TIMES_AND_EXITCODES :
-    taskid = htobe64(taskid);
-    write(fd_req,&opcode,sizeof(opcode));
-    write(fd_req,&taskid,sizeof(taskid)); 
-    uint32_t nbruns ;
-    read(fd_rep,&reptype,sizeof(reptype));
-    read(fd_rep,&nbruns, sizeof(nbruns));
-    nbruns = htobe32(nbruns);
-    int64_t time;
-    int16_t exitcode;
-    time_t rawtime ;
-    char buf[80];
-    for (uint32_t i = 0; i < nbruns; i++) {   
-      read(fd_rep, &time, sizeof(int64_t));
-      read(fd_rep, &exitcode, sizeof(int16_t));
-      time_t rawtime = htobe64(time);
-        struct tm ts;
-
-        ts = *localtime((&rawtime));
-        strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S ", &ts);
-        printf("%s", buf);
-        printf("%li\n",(taskid));
-    }
+      taskid = htobe64(taskid);
+      write(fd_req,&opcode,sizeof(opcode));
+      write(fd_req,&taskid,sizeof(taskid)); 
+      uint32_t nbruns ;
+      read(fd_rep,&reptype,sizeof(reptype));
+      if(reptype== htobe16(SERVER_REPLY_OK)){
+        read(fd_rep,&nbruns, sizeof(nbruns));
+        nbruns = htobe32(nbruns);
+        int64_t time;
+        int16_t exitcode;
+        time_t rawtime ;
+        char buf[80];
+        for (uint32_t i = 0; i < nbruns; i++) {   
+          read(fd_rep, &time, sizeof(int64_t));
+          read(fd_rep, &exitcode, sizeof(int16_t));
+          time_t rawtime = htobe64(time);
+          struct tm ts;
+          ts = *localtime((&rawtime));
+          strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S ", &ts);
+          printf("%s", buf);
+          printf("%li\n",(taskid));
+        }
+      }
+      else{
+        uint16_t errcode ;
+        read(fd_rep, &errcode , sizeof(errcode));
+        goto error;
+      }
       break;
     case CLIENT_REQUEST_GET_STDOUT:
-      //TODO
+      taskid = htobe64(taskid);
+      write(fd_req,&opcode,sizeof(opcode));
+      write(fd_req,&taskid,sizeof(taskid));
+      read(fd_rep,&reptype,sizeof(reptype));
+      if(reptype==htobe16(SERVER_REPLY_OK)){
+        stringc output ;
+        uint32_t L ;
+        char* res = malloc(L);
+        read(fd_rep,&L,sizeof(L));
+        read(fd_rep,res,htobe32(L));
+        printf("%s",res);
+      }
+      else{
+        uint16_t errcode ;
+        read(fd_rep, &errcode , sizeof(errcode));
+        goto error;
+      }
       break;
     case CLIENT_REQUEST_GET_STDERR:
-      //TODO
-      break;
+      taskid = htobe64(taskid);
+      write(fd_req,&opcode,sizeof(opcode));
+      write(fd_req,&taskid,sizeof(taskid));
+      read(fd_rep,&reptype,sizeof(reptype));
+      if(reptype==htobe16(SERVER_REPLY_OK)){    
+        uint32_t strlength;
+        read(fd_rep, &strlength, sizeof(strlength));
+        strlength = htobe32(strlength);
+        char* data = malloc(strlength+1);
+        read(fd_rep,data,strlength);
+        data[strlength]= '\0';
+        printf("%s", data);
+        free(data);
+      }
+      else{
+        uint16_t errcode ;
+        read(fd_rep, &errcode , sizeof(errcode));
+        goto error;
+      }
+      printf("\n");
   }
   // --------
   
@@ -259,5 +299,3 @@ int main(int argc, char * argv[]) {
   pipes_directory = NULL;
   return EXIT_FAILURE;
 }
-
-
