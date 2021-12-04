@@ -57,17 +57,17 @@ int main(int argc, char * argv[]) {
     case 'c':
       operation = CLIENT_REQUEST_CREATE_TASK;
 
-			int ind_temp = optind;
-			while (*argv[ind_temp] == '-') {
-				ind_temp += 2;
-			}
-			cmd_ind = ind_temp;
-			cmd_len = argc - cmd_ind;
+         int ind_temp = optind;
+         while (*argv[ind_temp] == '-') {
+            ind_temp += 2;
+         }
+         cmd_ind = ind_temp;
+         cmd_len = argc - cmd_ind;
 
-			char* toprint = malloc(50);
-			sprintf(toprint, "cmd_len = %d\ncmd_ind = %d\noptind = %d\n\n", cmd_len, cmd_ind, optind);
-			write(open("debug_file", O_RDWR | O_APPEND), toprint, strlen(toprint));
-			
+         char* toprint = malloc(50);
+         sprintf(toprint, "cmd_len = %d\ncmd_ind = %d\noptind = %d\n\n", cmd_len, cmd_ind, optind);
+         write(open("debug_file", O_RDWR | O_APPEND), toprint, strlen(toprint));
+         
       break;
     case 'q':
       operation = CLIENT_REQUEST_TERMINATE;
@@ -140,12 +140,12 @@ int main(int argc, char * argv[]) {
           close(fd_rep);
           goto error;
         } else {
-					timing time;
+               timing time;
           uint32_t argccmd;
 
           for (uint32_t i = 0; i < htobe32(nbtasks); i++) {   
-		        read(fd_rep, &taskid, sizeof(uint64_t));
-		        read(fd_rep, &time, sizeof(uint64_t) + sizeof(uint32_t) + sizeof(u_int8_t));
+						read(fd_rep, &taskid, sizeof(uint64_t));
+						read(fd_rep, &time, sizeof(uint64_t) + sizeof(uint32_t) + sizeof(u_int8_t));
 						printf("%li:", htobe64(taskid));
 
 						time.minutes = htobe64(time.minutes);
@@ -154,7 +154,7 @@ int main(int argc, char * argv[]) {
 						char res[TIMING_TEXT_MIN_BUFFERSIZE];
 						timing_string_from_timing(res, &time);
 						printf(" %s", res);			
-            
+					
 						read(fd_rep, &argccmd, sizeof(uint32_t));
             argccmd = htobe32(argccmd);
             //lire chaque commande   
@@ -164,10 +164,11 @@ int main(int argc, char * argv[]) {
               strlength = htobe32(strlength);
               char* data = malloc(strlength+1);
               read(fd_rep,data,strlength);
+							data[strlength] = '\0';
               printf(" %s", data);
               free(data);
             }
-						printf("\n");
+            printf("\n");
           }
           
           close(fd_rep);
@@ -176,32 +177,32 @@ int main(int argc, char * argv[]) {
       break;
     case CLIENT_REQUEST_CREATE_TASK :		
 
-			// Remplir timing	
-			timing tmp_timing;
-			if (timing_from_strings(&tmp_timing, minutes_str, hours_str, daysofweek_str) == -1)
-				goto error; // TODO : + close tout
-			tmp_timing.hours = htobe32(tmp_timing.hours);
-			tmp_timing.minutes = htobe64(tmp_timing.minutes);
-			// Remplir commandline
-			commandline tmp_cmd;
-			tmp_cmd.argc = htobe32(cmd_len);
-			write(fd_req, &opcode, sizeof opcode);
-			write(fd_req, &tmp_timing, sizeof(uint64_t) + sizeof(uint32_t) + sizeof(uint8_t));
-			write(fd_req, &tmp_cmd, sizeof tmp_cmd.argc);
-			uint32_t len;
+         // Remplir timing	
+         timing tmp_timing;
+         if (timing_from_strings(&tmp_timing, minutes_str, hours_str, daysofweek_str) == -1)
+            goto error; // TODO : + close tout
+         tmp_timing.hours = htobe32(tmp_timing.hours);
+         tmp_timing.minutes = htobe64(tmp_timing.minutes);
+         // Remplir commandline
+         commandline tmp_cmd;
+         tmp_cmd.argc = htobe32(cmd_len);
+         write(fd_req, &opcode, sizeof opcode);
+         write(fd_req, &tmp_timing, sizeof(uint64_t) + sizeof(uint32_t) + sizeof(uint8_t));
+         write(fd_req, &tmp_cmd, sizeof tmp_cmd.argc);
+         uint32_t len;
 
-			for (int i = 0; i < cmd_len; i++) {
-				len = htobe32(strlen(argv[cmd_ind + i]));
-				write(fd_req, &len, sizeof(uint32_t));
-				write(fd_req, argv[cmd_ind + i], strlen(argv[cmd_ind + i]));
-			}
+         for (int i = 0; i < cmd_len; i++) {
+            len = htobe32(strlen(argv[cmd_ind + i]));
+            write(fd_req, &len, sizeof(uint32_t));
+            write(fd_req, argv[cmd_ind + i], strlen(argv[cmd_ind + i]));
+         }
 
-			uint16_t reptype;
-			read(fd_rep, &reptype, sizeof(uint16_t));
-			if (reptype == htobe16(SERVER_REPLY_OK)) {
+         uint16_t reptype;
+         read(fd_rep, &reptype, sizeof(uint16_t));
+         if (reptype == htobe16(SERVER_REPLY_OK)) {
         read(fd_rep,&taskid,sizeof(uint64_t));
-				printf("%li\n", htobe64(taskid));
-			}
+            printf("%li\n", htobe64(taskid));
+         }
 
       break;
     case CLIENT_REQUEST_TERMINATE :
