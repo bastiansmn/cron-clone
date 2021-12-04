@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 
-struct stringc {
+typedef struct stringc {
   uint32_t L;
   char* val;
-};
+} stringc;
 #endif
