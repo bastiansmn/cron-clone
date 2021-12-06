@@ -126,7 +126,7 @@ int main(int argc, char * argv[]) {
   }
   uint16_t opcode = htobe16(operation);
   switch (operation) {	
-    case CLIENT_REQUEST_LIST_TASKS :
+    case CLIENT_REQUEST_LIST_TASKS : {
       int req = write(fd_req, &opcode, sizeof(opcode));
       if (req<0) {
         close(fd_req);
@@ -175,8 +175,8 @@ int main(int argc, char * argv[]) {
         }
       }
       break;
-    case CLIENT_REQUEST_CREATE_TASK :		
-
+		}
+    case CLIENT_REQUEST_CREATE_TASK :	{
          // Remplir timing	
          timing tmp_timing;
          if (timing_from_strings(&tmp_timing, minutes_str, hours_str, daysofweek_str) == -1)
@@ -205,17 +205,19 @@ int main(int argc, char * argv[]) {
          }
 
       break;
-    case CLIENT_REQUEST_TERMINATE :
+		}
+    case CLIENT_REQUEST_TERMINATE : {
       write(fd_req, &opcode, sizeof(opcode));
       read (fd_rep,&reptype,sizeof(reptype));
       break;
-    case CLIENT_REQUEST_REMOVE_TASK :
+		}
+		case CLIENT_REQUEST_REMOVE_TASK : {
       taskid = htobe64(taskid);
       write(fd_req,&opcode,sizeof(opcode));
       write(fd_req,&taskid,sizeof(taskid));  
       break;
-
-    case CLIENT_REQUEST_GET_TIMES_AND_EXITCODES :
+		}
+    case CLIENT_REQUEST_GET_TIMES_AND_EXITCODES : {
       taskid = htobe64(taskid);
       write(fd_req,&opcode,sizeof(opcode));
       write(fd_req,&taskid,sizeof(taskid)); 
@@ -245,7 +247,8 @@ int main(int argc, char * argv[]) {
         goto error;
       }
       break;
-    case CLIENT_REQUEST_GET_STDOUT:
+		}
+    case CLIENT_REQUEST_GET_STDOUT: {
       taskid = htobe64(taskid);
       write(fd_req,&opcode,sizeof(opcode));
       write(fd_req,&taskid,sizeof(taskid));
@@ -263,7 +266,8 @@ int main(int argc, char * argv[]) {
         goto error;
       }
       break;
-    case CLIENT_REQUEST_GET_STDERR:
+		}
+    case CLIENT_REQUEST_GET_STDERR: {
       taskid = htobe64(taskid);
       write(fd_req,&opcode,sizeof(opcode));
       write(fd_req,&taskid,sizeof(taskid));
@@ -284,6 +288,8 @@ int main(int argc, char * argv[]) {
         goto error;
       }
       printf("\n");
+			break;
+		}
   }
   // --------
   
