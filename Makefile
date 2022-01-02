@@ -15,3 +15,4 @@ test :
 
 distclean:
 	rm -rf src/*.o cassini saturnd
+	@killall saturnd 2> /dev/null || true
