@@ -61,12 +61,7 @@ int main(int argc, char * argv[]) {
         ind_temp += 2;
       }
       cmd_ind = ind_temp;
-      cmd_len = argc - cmd_ind;
-
-      char* toprint = malloc(50);
-      sprintf(toprint, "cmd_len = %d\ncmd_ind = %d\noptind = %d\n\n", cmd_len, cmd_ind, optind);
-      write(open("debug_file", O_RDWR | O_APPEND), toprint, strlen(toprint));
-         
+      cmd_len = argc - cmd_ind;         
       break;
     case 'q':
       operation = CLIENT_REQUEST_TERMINATE;
@@ -109,14 +104,22 @@ int main(int argc, char * argv[]) {
     sprintf(rep_pipe, "/tmp/%s/saturnd/pipes/reply", username);
     
     fd_req = open(req_pipe, O_WRONLY);
-    fd_rep = open(rep_pipe, O_RDONLY);
+    fd_rep = open(rep_pipe, O_RDONLY | O_NONBLOCK);
+    if (fd_rep == -1 || fd_req == -1) {
+      perror("open");
+      exit (EXIT_FAILURE);
+    }
   } else {
     char* req_pipe = strdup(pipes_directory);
     strcat(req_pipe, strdup("/saturnd-request-pipe"));
     char* rep_pipe = strdup(pipes_directory);
     strcat(rep_pipe, strdup("/saturnd-reply-pipe"));
     fd_req = open(req_pipe, O_WRONLY);
-    fd_rep = open(rep_pipe, O_RDONLY);
+    fd_rep = open(rep_pipe, O_RDONLY | O_NONBLOCK);
+    if (fd_rep == -1 || fd_req == -1) {
+      perror("open");
+      exit (EXIT_FAILURE);
+    }
   }
 
   int res;

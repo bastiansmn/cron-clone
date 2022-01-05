@@ -16,6 +16,7 @@
 #include <timing.h>
 #include <command-line.h>
 
+#include <dirent.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/stat.h>

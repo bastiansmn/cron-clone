@@ -1,6 +1,8 @@
 .PHONY: all
 
-client : distclean cassini test
+all : distclean cassini saturnd
+
+client : distclean cassini
 
 server : distclean saturnd
 

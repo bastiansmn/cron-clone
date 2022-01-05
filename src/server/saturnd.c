@@ -34,8 +34,34 @@ int main(int argc, char const *argv[]){
    char rep_pipe[50];
    sprintf(req_pipe, "/tmp/%s/saturnd/pipes/request", username);
    sprintf(rep_pipe, "/tmp/%s/saturnd/pipes/reply", username);
+   
+   char dirname[50];
+   sprintf(dirname, "/tmp/%s", username);
+   DIR* userdir = opendir(dirname);
+   if (userdir == NULL)
+      mkdir(dirname, S_IRUSR | S_IWUSR | S_IXUSR);
+   closedir(userdir);
+   sprintf(dirname, "/tmp/%s/saturnd", username);
+   DIR* saturndir = opendir(dirname);
+   if (saturndir == NULL)
+      mkdir(dirname, S_IRUSR | S_IWUSR | S_IXUSR);
+   sprintf(dirname, "/tmp/%s/saturnd/pipes", username);
+   DIR* pipesdir = opendir(dirname);
+   if (pipesdir == NULL)
+      mkdir(dirname, S_IRUSR | S_IWUSR | S_IXUSR);
+   closedir(pipesdir);
 
-   // TODO Vérifier si fichiers existent sinon, les créer
+   int err_createfifo;
+   err_createfifo = mkfifo(req_pipe, 0600);
+   if (errno != EEXIST && err_createfifo == -1) {
+      perror("req_pipe");
+      exit (EXIT_FAILURE);
+   }
+   err_createfifo = mkfifo(rep_pipe, 0600);
+   if (errno != EEXIST && err_createfifo == -1) {
+      perror("rep_pipe");
+      exit (EXIT_FAILURE);
+   }
    // https://linux.die.net/man/2/lstat
    // http://manpagesfr.free.fr/man/man3/mkfifo.3.html
 
@@ -45,12 +71,11 @@ int main(int argc, char const *argv[]){
    while (1) {
 
       fd_req = open(req_pipe, O_RDONLY);
-      
+
       if (fd_req == -1) {
          perror("open");
          goto error;
       }
-      
       err = read(fd_req, &op, sizeof(uint16_t));
       if (err == -1) {
          perror("read");
