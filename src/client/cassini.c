@@ -22,6 +22,9 @@ const char usage_info[] = "\
      -p PIPES_DIR -> look for the pipes in PIPES_DIR (default: /tmp/<USERNAME>/saturnd/pipes)\n\
 ";
 
+//            PID     PPID    
+// bastian    20339   11386  0 21:47 pts/2    00:00:00 ./saturnd
+
 int main(int argc, char * argv[]) {
   errno = 0;
   
@@ -104,8 +107,6 @@ int main(int argc, char * argv[]) {
     char* username = getenv("USER");
     sprintf(req_pipe, "/tmp/%s/saturnd/pipes/request", username);
     sprintf(rep_pipe, "/tmp/%s/saturnd/pipes/reply", username);
-    printf("req=%s\n", req_pipe);
-    printf("rep=%s\n", rep_pipe);
   } else {
     req_pipe = strdup(pipes_directory);
     strcat(req_pipe, strdup("/saturnd-request-pipe"));
