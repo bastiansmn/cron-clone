@@ -12,16 +12,16 @@
 #include <cassini.h>
 #endif // CLIENT_REQUEST_H
 
-int list_task(int fd_req, int fd_rep, uint64_t taskid);
+int list_task(char* req_pipe_dir, char* rep_pipe_dir, uint64_t taskid);
 
-int create_task(int fd_req, int fd_rep, uint64_t taskid, int cmd_len, int cmd_ind, char* argv[], char* minutes_str, char* hours_str, char* daysofweek_str);
+int create_task(char* req_pipe_dir, char* rep_pipe_dir, uint64_t taskid, int cmd_len, int cmd_ind, char* argv[], char* minutes_str, char* hours_str, char* daysofweek_str);
 
-int terminate(int fd_req, int fd_rep);
+int terminate(char* req_pipe_dir, char* rep_pipe_dir);
 
-int remove_task(int fd_req, int fd_rep, uint64_t taskid);
+int remove_task(char* req_pipe_dir, char* rep_pipe_dir, uint64_t taskid);
 
-int get_times(int fd_req, int fd_rep, uint64_t taskid);
+int get_times(char* req_pipe_dir, char* rep_pipe_dir, uint64_t taskid);
 
-int get_stdout(int fd_req, int fd_rep, uint64_t taskid);
+int get_stdout(char* req_pipe_dir, char* rep_pipe_dir, uint64_t taskid);
 
-int get_strerr(int fd_req, int fd_rep, uint64_t taskid);
+int get_strerr(char* req_pipe_dir, char* rep_pipe_dir, uint64_t taskid);

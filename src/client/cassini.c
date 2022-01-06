@@ -1,5 +1,8 @@
 #include "cassini.h"
 
+
+#define PATH_MAX 4096
+
 const char usage_info[] = "\
    usage: cassini [OPTIONS] -l -> list all tasks\n\
       or: cassini [OPTIONS]    -> same\n\
@@ -95,87 +98,72 @@ int main(int argc, char * argv[]) {
     }
   }
 
-  int fd_req, fd_rep;
+  char* req_pipe = malloc(PATH_MAX);
+  char* rep_pipe = malloc(PATH_MAX);
   if (pipes_directory == NULL) {
-    char req_pipe[50];
-    char rep_pipe[50];
     char* username = getenv("USER");
     sprintf(req_pipe, "/tmp/%s/saturnd/pipes/request", username);
     sprintf(rep_pipe, "/tmp/%s/saturnd/pipes/reply", username);
-    
-    fd_req = open(req_pipe, O_WRONLY);
-    fd_rep = open(rep_pipe, O_RDONLY | O_NONBLOCK);
-    if (fd_rep == -1 || fd_req == -1) {
-      perror("open");
-      exit (EXIT_FAILURE);
-    }
+    printf("req=%s\n", req_pipe);
+    printf("rep=%s\n", rep_pipe);
   } else {
-    char* req_pipe = strdup(pipes_directory);
+    req_pipe = strdup(pipes_directory);
     strcat(req_pipe, strdup("/saturnd-request-pipe"));
-    char* rep_pipe = strdup(pipes_directory);
+    rep_pipe = strdup(pipes_directory);
     strcat(rep_pipe, strdup("/saturnd-reply-pipe"));
-    fd_req = open(req_pipe, O_WRONLY);
-    fd_rep = open(rep_pipe, O_RDONLY | O_NONBLOCK);
-    if (fd_rep == -1 || fd_req == -1) {
-      perror("open");
-      exit (EXIT_FAILURE);
-    }
   }
 
   int res;
   switch (operation) {	
     case CLIENT_REQUEST_LIST_TASKS : {
-      res = list_task(fd_req, fd_rep, taskid);
+      res = list_task(req_pipe, rep_pipe, taskid);
       if (res != 0)
         goto error;
       break;
 		}
     case CLIENT_REQUEST_CREATE_TASK :	{
-      res = create_task(fd_req, fd_rep, taskid, cmd_len, cmd_ind, argv, minutes_str, hours_str, daysofweek_str);
+      res = create_task(req_pipe, rep_pipe, taskid, cmd_len, cmd_ind, argv, minutes_str, hours_str, daysofweek_str);
       if (res != 0)
         goto error;
       break;
 		}
     case CLIENT_REQUEST_TERMINATE : {
-      res = terminate(fd_req, fd_rep);
+      res = terminate(req_pipe, rep_pipe);
       if (res != 0)
         goto error;
       break;
 		}
 		case CLIENT_REQUEST_REMOVE_TASK : {
-      res = remove_task(fd_req, fd_rep, taskid);
+      res = remove_task(req_pipe, rep_pipe, taskid);
       if (res != 0)
         goto error;
       break;
 		}
     case CLIENT_REQUEST_GET_TIMES_AND_EXITCODES : {
-      res = get_times(fd_req, fd_rep, taskid);
+      res = get_times(req_pipe, rep_pipe, taskid);
       if (res != 0)
         goto error;
       break;
 		}
     case CLIENT_REQUEST_GET_STDOUT: {
-      res = get_stdout(fd_req, fd_rep, taskid);
+      res = get_stdout(req_pipe, rep_pipe, taskid);
       if (res != 0)
         goto error;
       break;
 		}
     case CLIENT_REQUEST_GET_STDERR: {
-      res = get_strerr(fd_req, fd_rep, taskid);
+      res = get_strerr(req_pipe, rep_pipe, taskid);
       if (res != 0)
         goto error;
       break;
 		}
   }
-  // --------
   
   return EXIT_SUCCESS;
 
  error:
   // TODO : Free tous les éléments (en particulier les strings) qui ont été malloc (ou autre fonctions)
   if (errno != 0) perror("main");
-  close(fd_rep);
-  close(fd_req);
   free(pipes_directory);
   pipes_directory = NULL;
   return EXIT_FAILURE;

@@ -71,7 +71,7 @@ int main(int argc, char const *argv[]){
    while (1) {
 
       fd_req = open(req_pipe, O_RDONLY);
-
+      printf("(saturnd): tube ouvert par cassini\n");
       if (fd_req == -1) {
          perror("open");
          goto error;
