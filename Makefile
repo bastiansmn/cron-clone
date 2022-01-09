@@ -7,10 +7,10 @@ client : distclean cassini
 server : distclean saturnd
 
 cassini : 
-	gcc -Wall -Iinclude src/client/*.c -o cassini
+	gcc -Wall -Iinclude src/client/*.c src/*.c -o cassini
 
 saturnd :
-	gcc -Wall -Iinclude src/server/*.c -o saturnd
+	gcc -Wall -Iinclude src/server/*.c src/*.c -o saturnd
 
 test :
 	bash run-cassini-tests.sh

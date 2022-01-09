@@ -15,7 +15,7 @@
 #include <assert.h>
 #include <stringc.h>
 #include <timing.h>
-#include <command-line.h>
+#include "command-line.h"
 #include "timing-text-io.h"
 #include "client-request.h"
 #include "server-reply.h"
