@@ -2,9 +2,12 @@
 
 int server_pid;
 
-int first_id_available = 0;
+uint64_t first_id_available = 0;
 
 void start_server() {
+   // TODO : Ne pas relancer le serveur si il est déjà lancé
+   // Chercher les taches existentes et les lancer
+
    int pid = fork();
 
    switch (pid) {
@@ -94,7 +97,6 @@ int main(int argc, char const *argv[]){
             break;
          }
          case CLIENT_REQUEST_CREATE_TASK: {
-            // Lire
             timing* t = malloc(sizeof (timing));
             read(fd_req, &(t->minutes), sizeof (uint64_t));
             read(fd_req, &(t->hours), sizeof (uint32_t));
@@ -113,7 +115,7 @@ int main(int argc, char const *argv[]){
                uint32_t L;
                read(fd_req, &L, sizeof (uint32_t));
                L = htobe32(L); 
-               command_size += L;
+               command_size += (L+2);
                char* val = malloc(L+2);
                read(fd_req, val, L);
                val[L] = '\n';
@@ -132,7 +134,6 @@ int main(int argc, char const *argv[]){
                   // Processus fils
                   int t_id = first_id_available;
                   char t_idname[50];
-                  printf("taskid: %d\n", t_id);
                   sprintf(t_idname, "/tmp/%s/saturnd/tasks/%d", username, t_id);
                   int err_mkdir = mkdir(t_idname, S_IRUSR | S_IWUSR | S_IXUSR);
                   if (errno != EEXIST && err_mkdir == -1) {
@@ -143,8 +144,9 @@ int main(int argc, char const *argv[]){
                   int fd_task;
                   sprintf(t_idname, "/tmp/%s/saturnd/tasks/%d/command", username, t_id);
                   fd_task = open(t_idname, O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU | S_IWUSR);
-                  for (int i = 0; i < nbargs; i++)
+                  for (int i = 0; i < nbargs; i++) {
                      write(fd_task, toexec[i], strlen(toexec[i]));
+                  }
 
                   sprintf(t_idname, "/tmp/%s/saturnd/tasks/%d/stdout", username, t_id);
                   fd_task = open(t_idname, O_RDWR | O_CREAT, S_IRWXU | S_IWUSR);
@@ -176,7 +178,7 @@ int main(int argc, char const *argv[]){
                   uint16_t reptype = htobe16(SERVER_REPLY_OK);
                   int fd_rep = open(rep_pipe, O_WRONLY);
                   write(fd_rep, &reptype, sizeof(uint16_t));
-                  write(fd_rep, &first_id_available, sizeof(uint32_t));
+                  write(fd_rep, &first_id_available, sizeof(uint64_t));
                   first_id_available++;
                   close(fd_rep);
                   break;

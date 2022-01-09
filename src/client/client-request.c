@@ -1,16 +1,14 @@
 #include "client-request.h"
 
 
-void close_pipes(int req, int rep) {
-  close(req); close(rep);
-}
-
 int list_task(char* req_pipe_dir, char* rep_pipe_dir, uint64_t taskid) {
   uint16_t opcode = htobe16(CLIENT_REQUEST_LIST_TASKS);
   int fd_req = open(req_pipe_dir, O_WRONLY);
   int req = write(fd_req, &opcode, sizeof(opcode));
+  close(fd_req);
   if (req<0) {
-    close(fd_req);
+    perror("write");
+    return -1;
   } else {
     int fd_rep = open(rep_pipe_dir,O_RDONLY);
     uint16_t reptype;
@@ -19,7 +17,7 @@ int list_task(char* req_pipe_dir, char* rep_pipe_dir, uint64_t taskid) {
     read (fd_rep, &nbtasks, sizeof(nbtasks));
     
     if(reptype==htobe16(SERVER_REPLY_ERROR)) {
-      close_pipes(fd_req, fd_req);
+      close(fd_rep);
       return 1;
     } else {
       timing time;
@@ -53,8 +51,8 @@ int list_task(char* req_pipe_dir, char* rep_pipe_dir, uint64_t taskid) {
         printf("\n");
       }
     }
+    close(fd_rep);
   }
-  close_pipes(fd_req, fd_req);
   return 0;
 }
 
@@ -80,15 +78,16 @@ int create_task(char* req_pipe_dir, char* rep_pipe_dir, uint64_t taskid, int cmd
     write(fd_req, &len, sizeof(uint32_t));
     write(fd_req, argv[cmd_ind + i], strlen(argv[cmd_ind + i]));
   }
+  close(fd_req);
 
   int fd_rep = open(rep_pipe_dir, O_RDONLY);
   uint16_t reptype;
   read(fd_rep, &reptype, sizeof(uint16_t));
   if (reptype == htobe16(SERVER_REPLY_OK)) {
     read(fd_rep,&taskid,sizeof(uint64_t));
-    printf("%li\n", htobe64(taskid));
+    printf("%li\n", taskid);
   }
-  close_pipes(fd_req, fd_req);
+  close(fd_rep);
   return 0;
 }
 
@@ -96,10 +95,11 @@ int terminate(char* req_pipe_dir, char* rep_pipe_dir){
   uint16_t opcode = htobe16(CLIENT_REQUEST_TERMINATE);
   int fd_req = open(req_pipe_dir, O_WRONLY);
   write(fd_req, &opcode, sizeof(opcode));
+  close(fd_req);
   int fd_rep = open(rep_pipe_dir, O_RDONLY);
   uint16_t reptype = htobe16(SERVER_REPLY_OK);
   read(fd_rep, &reptype, sizeof(uint16_t));
-  close_pipes(fd_req, fd_rep);
+  close(fd_rep);
   return 0;
 }
 
@@ -109,10 +109,11 @@ int remove_task(char* req_pipe_dir, char* rep_pipe_dir, uint64_t taskid) {
   int fd_req = open(req_pipe_dir, O_WRONLY);
   write(fd_req,&opcode,sizeof(opcode));
   write(fd_req,&taskid,sizeof(taskid)); 
+  close(fd_req);
   int fd_rep = open(rep_pipe_dir, O_RDONLY);
   uint16_t reptype = htobe16(SERVER_REPLY_OK);
   read(fd_rep, &reptype, sizeof(uint16_t));
-  close_pipes(fd_req, fd_rep);
+  close(fd_rep);
   return 0;
 }
 
@@ -123,6 +124,7 @@ int get_times(char* req_pipe_dir, char* rep_pipe_dir, uint64_t taskid) {
   int fd_req = open(req_pipe_dir, O_WRONLY);
   write(fd_req, &opcode, sizeof(opcode));
   write(fd_req, &taskid, sizeof(taskid)); 
+  close(fd_req);
   uint32_t nbruns ;
   int fd_rep = open(rep_pipe_dir, O_RDONLY);
   read(fd_rep, &reptype, sizeof(reptype));
@@ -136,6 +138,7 @@ int get_times(char* req_pipe_dir, char* rep_pipe_dir, uint64_t taskid) {
     for (uint32_t i = 0; i < nbruns; i++) {   
       read(fd_rep, &time, sizeof(int64_t));
       read(fd_rep, &exitcode, sizeof(int16_t));
+      close(fd_rep);
       rawtime = htobe64(time);
       struct tm ts;
       ts = *localtime((&rawtime));
@@ -147,10 +150,9 @@ int get_times(char* req_pipe_dir, char* rep_pipe_dir, uint64_t taskid) {
   else {
     uint16_t errcode ;
     read(fd_rep, &errcode , sizeof(errcode));
-    close_pipes(fd_req, fd_req);
+    close(fd_rep);
     return 1;
   }
-  close_pipes(fd_req, fd_req);
   return 0;
 }
 
@@ -163,6 +165,7 @@ int get_stdout(char* req_pipe_dir, char* rep_pipe_dir, uint64_t taskid) {
   int fd_req = open(req_pipe_dir, O_WRONLY);
   write(fd_req,&opcode,sizeof(opcode));
   write(fd_req,&taskid,sizeof(taskid));
+  close(fd_req);
   int fd_rep = open(rep_pipe_dir, O_RDONLY);
   read(fd_rep,&reptype,sizeof(reptype));
   if(reptype==htobe16(SERVER_REPLY_OK)){
@@ -170,15 +173,15 @@ int get_stdout(char* req_pipe_dir, char* rep_pipe_dir, uint64_t taskid) {
     char* res = malloc(L);
     read(fd_rep,&L,sizeof(L));
     read(fd_rep,res,htobe32(L));
+    close(fd_rep);
     printf("%s",res);
   }
   else{
     uint16_t errcode ;
     read(fd_rep, &errcode , sizeof(errcode));
-    close_pipes(fd_req, fd_req);
+    close(fd_rep);
     return 1;
   }
-  close_pipes(fd_req, fd_req);
   return 0;
 }
 
@@ -189,6 +192,7 @@ int get_strerr(char* req_pipe_dir, char* rep_pipe_dir, uint64_t taskid) {
   int fd_req = open(req_pipe_dir, O_WRONLY);
   write(fd_req,&opcode,sizeof(opcode));
   write(fd_req,&taskid,sizeof(taskid));
+  close(fd_req);
   int fd_rep = open(rep_pipe_dir, O_RDONLY);
   read(fd_rep,&reptype,sizeof(reptype));
   if(reptype==htobe16(SERVER_REPLY_OK)){    
@@ -197,17 +201,16 @@ int get_strerr(char* req_pipe_dir, char* rep_pipe_dir, uint64_t taskid) {
     strlength = htobe32(strlength);
     char* data = malloc(strlength+1);
     read(fd_rep,data,strlength);
+    close(fd_rep);
     data[strlength]= '\0';
     printf("%s", data);
     free(data);
-  }
-  else{
+  } else {
     uint16_t errcode ;
     read(fd_rep, &errcode , sizeof(errcode));
-    close_pipes(fd_req, fd_req);
+    close(fd_rep);
     return 1;
   }
   printf("\n");
-  close_pipes(fd_req, fd_req);
   return 0;
 }
