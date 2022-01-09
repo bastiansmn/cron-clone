@@ -17,6 +17,7 @@ void start_server() {
       }
       case 0: {
          // Processus fils
+         
          server_pid = getpid();
          // TODO cherche le plus petit id disponible pour first_id_available
          // TODO fermer les STDOUT/...
@@ -64,6 +65,10 @@ int main(int argc, char const *argv[]){
    if (tasksdir == NULL)
       mkdir(tasksdirname, S_IRUSR | S_IWUSR | S_IXUSR);
 
+   char* pid_dir = malloc(50);
+   sprintf(pid_dir, "/tmp/%s/saturnd/pidsrunning", username);
+   int pid_run_fd = open(pid_dir, O_WRONLY | O_CREAT, S_IRWXU | S_IWUSR);
+
    int err_createfifo;
    err_createfifo = mkfifo(req_pipe, 0600);
    if (errno != EEXIST && err_createfifo == -1) {
@@ -94,6 +99,8 @@ int main(int argc, char const *argv[]){
       
       switch (htobe16(op)) {
          case CLIENT_REQUEST_LIST_TASKS: {
+            // TODO : Lire toutes les taches (parcourir le répertoire)
+            // TODO : envoyer proprement les taches
             break;
          }
          case CLIENT_REQUEST_CREATE_TASK: {
@@ -148,29 +155,29 @@ int main(int argc, char const *argv[]){
                      write(fd_task, toexec[i], strlen(toexec[i]));
                   }
 
+                  int task_stdoud, task_stderr;
                   sprintf(t_idname, "/tmp/%s/saturnd/tasks/%d/stdout", username, t_id);
-                  fd_task = open(t_idname, O_RDWR | O_CREAT, S_IRWXU | S_IWUSR);
-                  dup2(fd_task, STDOUT_FILENO);
+                  task_stdoud = open(t_idname, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IWUSR);
                   sprintf(t_idname, "/tmp/%s/saturnd/tasks/%d/stderr", username, t_id);
-                  fd_task = open(t_idname, O_RDWR | O_CREAT, S_IRWXU | S_IWUSR);
-                  dup2(fd_task, STDERR_FILENO);
+                  task_stderr = open(t_idname, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IWUSR);
 
                   sprintf(t_idname, "/tmp/%s/saturnd/tasks/%d/exitcodes", username, t_id);
                   fd_task = open(t_idname, O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU | S_IWUSR);
                   close(fd_task);
 
-                  // TODO : exec la tache
-                     // sleep(60*htobe64(t->minutes) + 3600*htobe32(t->hours) + 24*3600*(t->daysofweek));
-                     // execvp(toexec[0], toexec);
-                  
+                  dup2(task_stdoud, STDOUT_FILENO);
+                  dup2(task_stderr, STDERR_FILENO);
+
                   while(1) {
-                     printf("task %d running\n", t_id);
                      sleep(10);
+                     // TODO : Attendre le temps donné dans la timing t
+                     // sleep(60*(t->minutes) + 3600*(t->hours) + 24*3600*(t->daysofweek));
+                     execvp(toexec[0], toexec);
+                     printf("exec: %s\n", toexec[0]);
+                     // TODO : écrire dans exitcodes la date du run et son exitcode
                   }
-                  printf("fin de tache\n");
 
                   exit(EXIT_SUCCESS);
-
                   break;
                }
                default: {
@@ -178,9 +185,15 @@ int main(int argc, char const *argv[]){
                   uint16_t reptype = htobe16(SERVER_REPLY_OK);
                   int fd_rep = open(rep_pipe, O_WRONLY);
                   write(fd_rep, &reptype, sizeof(uint16_t));
-                  write(fd_rep, &first_id_available, sizeof(uint64_t));
-                  first_id_available++;
+                  uint64_t tempid = htobe64(first_id_available);
+                  write(fd_rep, &tempid, sizeof(uint64_t));
                   close(fd_rep);
+                  
+                  char* id_to_string = malloc(50);
+                  sprintf(id_to_string, "%ld:%d\n", first_id_available, task_pid);
+                  write(pid_run_fd, id_to_string, strlen(id_to_string));
+
+                  first_id_available++;
                   break;
                }
             }
@@ -189,9 +202,14 @@ int main(int argc, char const *argv[]){
             break;
          }
          case CLIENT_REQUEST_REMOVE_TASK: {
+            // TODO : lire l'id de la tâche à supprimer
+            // TODO : kill le processus correspondant
+            // TODO : supprimer le dossier de la tâche
             break;
          }
          case CLIENT_REQUEST_GET_TIMES_AND_EXITCODES: {
+            // TODO : lire l'id de la tâche à lire
+            // TODO : lire le fichier de sortie de la tâche
             break;
          }
          case CLIENT_REQUEST_TERMINATE: {
@@ -200,18 +218,54 @@ int main(int argc, char const *argv[]){
             fd_rep = open(rep_pipe, O_WRONLY);
             write(fd_rep, &reptype, sizeof(uint16_t));
             close(fd_rep);
+
+            // kill les taches en cours
+            FILE* file = fopen(pid_dir, "r"); 
+
+            if(!file){
+               printf("Unable to open : %s ", pid_dir);
+               return -1;
+            }
+
+            char line[50];
+
+            while (fgets(line, sizeof(line), file)) {
+               const char * separators = ":";
+
+               int pid = -1;
+               int i = 0;
+               char * strToken = strtok ( line, separators );
+               while ( strToken != NULL ) {
+                  if (i != 0) {
+                     pid = atoi(strToken);
+                     kill(pid, SIGKILL);
+                     break;
+                  }
+                  i++;
+                  strToken = strtok ( NULL, separators );
+               }
+            }
+            fclose(file);
+
+            // supprime pidsrunning
+            remove(pid_dir);
+
             exit(EXIT_SUCCESS);
             break;
          }
          case CLIENT_REQUEST_GET_STDOUT: {
+            // TODO : lire l'id de la tâche à lire
+            // TODO : renvoie stdout
             break;
          }
          case CLIENT_REQUEST_GET_STDERR: {
+            // TODO : lire l'id de la tâche à lire
+            // TODO : renvoie stderr
             break;
          }
       }
    }
-
+   //TODO :faire un timeout en cas d'erreur 
    return 0;
 
  error:

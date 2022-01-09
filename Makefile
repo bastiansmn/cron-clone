@@ -12,7 +12,7 @@ cassini :
 saturnd :
 	gcc -Wall -Iinclude src/server/*.c src/*.c -o saturnd
 
-test :
+test : client
 	bash run-cassini-tests.sh
 
 distclean:

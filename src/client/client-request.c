@@ -38,7 +38,7 @@ int list_task(char* req_pipe_dir, char* rep_pipe_dir, uint64_t taskid) {
         read(fd_rep, &argccmd, sizeof(uint32_t));
         argccmd = htobe32(argccmd);
         //lire chaque commande   
-        for(int j = 0 ; j< argccmd ; j++){
+        for(int j = 0 ; j < argccmd ; j++){
           int strlength;
           read(fd_rep, &strlength, sizeof(strlength));
           strlength = htobe32(strlength);
@@ -60,8 +60,9 @@ int create_task(char* req_pipe_dir, char* rep_pipe_dir, uint64_t taskid, int cmd
   uint16_t opcode = htobe16(CLIENT_REQUEST_CREATE_TASK);
   // Remplir timing	
   timing tmp_timing;
-  if (timing_from_strings(&tmp_timing, minutes_str, hours_str, daysofweek_str) == -1)
+  if (timing_from_strings(&tmp_timing, minutes_str, hours_str, daysofweek_str) == -1) {
     return 1; // TODO : + close tout
+  }
   tmp_timing.hours = htobe32(tmp_timing.hours);
   tmp_timing.minutes = htobe64(tmp_timing.minutes);
   // Remplir commandline
@@ -85,7 +86,7 @@ int create_task(char* req_pipe_dir, char* rep_pipe_dir, uint64_t taskid, int cmd
   read(fd_rep, &reptype, sizeof(uint16_t));
   if (reptype == htobe16(SERVER_REPLY_OK)) {
     read(fd_rep,&taskid,sizeof(uint64_t));
-    printf("%li\n", taskid);
+    printf("%li\n", htobe64(taskid));
   }
   close(fd_rep);
   return 0;
@@ -163,20 +164,19 @@ int get_stdout(char* req_pipe_dir, char* rep_pipe_dir, uint64_t taskid) {
   taskid = htobe64(taskid);
 
   int fd_req = open(req_pipe_dir, O_WRONLY);
-  write(fd_req,&opcode,sizeof(opcode));
-  write(fd_req,&taskid,sizeof(taskid));
+  write(fd_req, &opcode, sizeof(opcode));
+  write(fd_req, &taskid, sizeof(taskid));
   close(fd_req);
   int fd_rep = open(rep_pipe_dir, O_RDONLY);
   read(fd_rep,&reptype,sizeof(reptype));
-  if(reptype==htobe16(SERVER_REPLY_OK)){
-    uint32_t L ;
-    char* res = malloc(L);
-    read(fd_rep,&L,sizeof(L));
-    read(fd_rep,res,htobe32(L));
+  if (reptype==htobe16(SERVER_REPLY_OK)) {
+    char* buffer = malloc(2);
+    int rd;
+    while ((rd = read(fd_rep, buffer, 2)) > 0)
+      printf("%s", buffer);
+    printf("\n");
     close(fd_rep);
-    printf("%s",res);
-  }
-  else{
+  } else {
     uint16_t errcode ;
     read(fd_rep, &errcode , sizeof(errcode));
     close(fd_rep);

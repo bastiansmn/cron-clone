@@ -27,4 +27,6 @@
 #include "server-reply.h"
 #include "timing-text-io.h"
 
+#include "list.h"
+
 #endif

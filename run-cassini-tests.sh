@@ -5,7 +5,7 @@
 CASSINI=./cassini
 PIPESDIR=./run/pipes
 TESTSDIR=./tests
-PATTERN=cassini-test-
+PATTERN=cassini-grading-
 
 TMP1=$(mktemp)
 TMP2=$(mktemp)
@@ -21,7 +21,7 @@ then
   exit 1
 fi
 
-if ! find "$TESTSDIR" -maxdepth 1 -name "cassini-test-*" | grep . >/dev/null 2>&1
+if ! find "$TESTSDIR" -maxdepth 1 -name "cassini-grading-*" | grep . >/dev/null 2>&1
 then
   echo "The tests have not been generated"
   exit 1
@@ -132,7 +132,7 @@ echo_red() {
 
 PASSED=true
 
-for f in $(find "$TESTSDIR" -maxdepth 1 -name "cassini-test-*" | sort -n -t- -k3,3)
+for f in $(find "$TESTSDIR" -maxdepth 1 -name "cassini-grading-*" | sort -n -t- -k3,3)
 do
   if ! run_test "$f"; then
     echo -ne "\n"
