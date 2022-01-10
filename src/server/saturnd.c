@@ -155,9 +155,9 @@ int main(int argc, char const *argv[]){
                      write(fd_task, toexec[i], strlen(toexec[i]));
                   }
 
-                  int task_stdoud, task_stderr;
+                  int task_stdout, task_stderr;
                   sprintf(t_idname, "/tmp/%s/saturnd/tasks/%d/stdout", username, t_id);
-                  task_stdoud = open(t_idname, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IWUSR);
+                  task_stdout = open(t_idname, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IWUSR);
                   sprintf(t_idname, "/tmp/%s/saturnd/tasks/%d/stderr", username, t_id);
                   task_stderr = open(t_idname, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IWUSR);
 
@@ -165,8 +165,10 @@ int main(int argc, char const *argv[]){
                   fd_task = open(t_idname, O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU | S_IWUSR);
                   close(fd_task);
 
-                  dup2(task_stdoud, STDOUT_FILENO);
+                  dup2(task_stdout, STDOUT_FILENO);
                   dup2(task_stderr, STDERR_FILENO);
+                  close(task_stdout);
+                  close(task_stderr);
 
                   while(1) {
                      sleep(10);

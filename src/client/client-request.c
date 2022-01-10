@@ -1,5 +1,9 @@
 #include "client-request.h"
 
+#ifndef BUFFER_SIZE
+#define BUFFER_SIZE 1024
+#endif
+
 
 int list_task(char* req_pipe_dir, char* rep_pipe_dir, uint64_t taskid) {
   uint16_t opcode = htobe16(CLIENT_REQUEST_LIST_TASKS);
