@@ -29,4 +29,6 @@
 
 #include "list.h"
 
+#include "server-fun.h"
+
 #endif
