@@ -10,33 +10,36 @@ int list_task(char* req_pipe_dir, char* rep_pipe_dir, uint64_t taskid) {
   int fd_req = open(req_pipe_dir, O_WRONLY);
   int req = write(fd_req, &opcode, sizeof(opcode));
   close(fd_req);
+  int fd_rep = open(rep_pipe_dir,O_RDONLY);
   if (req<0) {
     perror("write");
     return -1;
   } else {
-    int fd_rep = open(rep_pipe_dir,O_RDONLY);
     uint16_t reptype;
     uint32_t nbtasks;
     read (fd_rep, &reptype, sizeof(reptype));
     read (fd_rep, &nbtasks, sizeof(nbtasks));
-    
-    if(reptype==htobe16(SERVER_REPLY_ERROR)) {
+    reptype = htobe16(reptype);
+    nbtasks = htobe32(nbtasks);
+
+    if(reptype!=SERVER_REPLY_OK) {
       close(fd_rep);
       return 1;
     } else {
       timing time;
       uint32_t argccmd;
 
-      for (uint32_t i = 0; i < htobe32(nbtasks); i++) {   
+      for (uint32_t i = 0; i < nbtasks; i++) {   
         read(fd_rep, &taskid, sizeof(uint64_t));
-        read(fd_rep, &time, sizeof(uint64_t) + sizeof(uint32_t) + sizeof(u_int8_t));
-        printf("%li:", htobe64(taskid));
+        read(fd_rep, &time, sizeof(uint64_t) + sizeof(uint32_t) + sizeof(uint8_t));
+        printf("%lu:", htobe64(taskid));
 
         time.minutes = htobe64(time.minutes);
         time.hours = htobe32(time.hours);
         
         char res[TIMING_TEXT_MIN_BUFFERSIZE];
-        timing_string_from_timing(res, &time);
+        int len = timing_string_from_timing(res, &time);
+        res[len] = '\0';
         printf(" %s", res);			
     
         read(fd_rep, &argccmd, sizeof(uint32_t));
@@ -55,8 +58,8 @@ int list_task(char* req_pipe_dir, char* rep_pipe_dir, uint64_t taskid) {
         printf("\n");
       }
     }
-    close(fd_rep);
   }
+  close(fd_rep);
   return 0;
 }
 
@@ -116,8 +119,16 @@ int remove_task(char* req_pipe_dir, char* rep_pipe_dir, uint64_t taskid) {
   write(fd_req,&taskid,sizeof(taskid)); 
   close(fd_req);
   int fd_rep = open(rep_pipe_dir, O_RDONLY);
-  uint16_t reptype = htobe16(SERVER_REPLY_OK);
+  uint16_t reptype;
   read(fd_rep, &reptype, sizeof(uint16_t));
+  reptype = htobe16(reptype);
+  if (reptype != SERVER_REPLY_OK) {
+    uint16_t errtype;
+    read(fd_rep, &errtype, sizeof(uint16_t));
+    errtype = htobe16(errtype);
+    if (errtype == SERVER_REPLY_ERROR_NOT_FOUND)
+      printf("SERVER_REPLY_ERROR_NOT_FOUND\n");
+  }
   close(fd_rep);
   return 0;
 }

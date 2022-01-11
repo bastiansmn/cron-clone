@@ -60,8 +60,9 @@ int main(int argc, char * argv[]) {
     case 'c':
       operation = CLIENT_REQUEST_CREATE_TASK;
 
+      // TODO : vérifier si il n'y a pas d'arg pour la commande
       int ind_temp = optind;
-      while (*argv[ind_temp] == '-') {
+      while (argv[ind_temp] && *argv[ind_temp] == '-') {
         ind_temp += 2;
       }
       cmd_ind = ind_temp;

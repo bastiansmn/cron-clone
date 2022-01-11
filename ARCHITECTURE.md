@@ -21,11 +21,12 @@ Le server créé l'arborescence suivante :
 │     ├─ command
 │     ├─ exitcodes
 │     ├─ stderr
+│     ├─ pid
 │     └─ stdout
 ├─ pipes/
 │  ├─ reply
-│  └─ request
-└─ pidsrunning
+└─ └─ request
+
 ```
 
 La création d'une tâche créé un dossier `<TASK_ID>` dans tasks/ ainsi que les fichiers correspondants. Le dossier `pipes/` contient les tubes utilisés par le server et par le client (sans préciser l'option `-p`).

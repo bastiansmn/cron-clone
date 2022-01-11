@@ -63,10 +63,7 @@ int main(int argc, char const *argv[]){
    DIR* tasksdir = opendir(tasksdirname);
    if (tasksdir == NULL)
       mkdir(tasksdirname, S_IRUSR | S_IWUSR | S_IXUSR);
-
-   char* pid_dir = malloc(50);
-   sprintf(pid_dir, "/tmp/%s/saturnd/pidsrunning", username);
-   int pid_run_fd = open(pid_dir, O_WRONLY | O_CREAT, S_IRWXU | S_IWUSR);
+   closedir(tasksdir);
 
    int err_createfifo;
    err_createfifo = mkfifo(req_pipe, 0600);
@@ -85,7 +82,16 @@ int main(int argc, char const *argv[]){
 
    while (1) {
 
+      
+      // TODO vérifier que le pipe existe avant de l'ouvrir
       fd_req = open(req_pipe, O_RDONLY);
+      struct stat sb;
+      int l = stat(req_pipe, &sb);
+      if (l == -1) {
+         perror("stat");
+         server_terminate(fd_req, rep_pipe);
+      }
+
       if (fd_req == -1) {
          perror("open");
          goto error;
@@ -98,11 +104,11 @@ int main(int argc, char const *argv[]){
       
       switch (htobe16(op)) {
          case CLIENT_REQUEST_LIST_TASKS: {
-            server_list_task();
+            server_list_task(fd_req, rep_pipe);
             break;
          }
          case CLIENT_REQUEST_CREATE_TASK: {
-            int res = server_create_task(fd_req, rep_pipe, tasksdir, first_id_available, pid_run_fd, username);
+            int res = server_create_task(fd_req, rep_pipe, tasksdir, first_id_available);
             if (res == -1) {
                perror("server_create_task");
                goto error;
@@ -111,24 +117,23 @@ int main(int argc, char const *argv[]){
             break;
          }
          case CLIENT_REQUEST_REMOVE_TASK: {
-            server_remove();
+            server_remove(fd_req, rep_pipe);
             break;
          }
          case CLIENT_REQUEST_GET_TIMES_AND_EXITCODES: {
-            server_times_exit();
+            server_times_exit(fd_req, rep_pipe);
             break;
          }
          case CLIENT_REQUEST_TERMINATE: {
-            exit(server_terminate(fd_req, rep_pipe, pid_dir));
-            puts("exit");
+            exit(server_terminate(fd_req, rep_pipe));
             break;
          }
          case CLIENT_REQUEST_GET_STDOUT: {
-            server_stdout();
+            server_stdout(fd_req, rep_pipe);
             break;
          }
          case CLIENT_REQUEST_GET_STDERR: {
-            server_stderr();
+            server_stderr(fd_req, rep_pipe);
             break;
          }
       }

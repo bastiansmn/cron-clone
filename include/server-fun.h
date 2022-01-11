@@ -3,20 +3,20 @@
 
 #include <saturnd.h>
 
-#define MAX_BUFFER 128
+#define MAX_BUFFER 256
 
 #endif
 
-int server_list_task();
+int server_list_task(int fd_req, char* rep_pipe);
 
-int server_create_task(int fd_req, char* rep_pipe, DIR* tasksdir, uint64_t first_id_available, int pid_run_fd, char* username);
+int server_create_task(int fd_req, char* rep_pipe, DIR* tasksdir, uint64_t first_id_available);
 
-int server_terminate(int fd_req, char* rep_pipe, char* pid_dir);
+int server_terminate(int fd_req, char* rep_pipe);
 
-int server_remove();
+int server_remove(int fd_req, char* rep_pipe);
 
-int server_times_exit();
+int server_times_exit(int fd_req, char* rep_pipe);
 
-int server_stdout();
+int server_stdout(int fd_req, char* rep_pipe);
 
-int server_stderr();
+int server_stderr(int fd_req, char* rep_pipe);
