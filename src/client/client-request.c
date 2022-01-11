@@ -46,8 +46,8 @@ int list_task(char* req_pipe_dir, char* rep_pipe_dir, uint64_t taskid) {
         argccmd = htobe32(argccmd);
         //lire chaque commande   
         for(int j = 0 ; j < argccmd ; j++){
-          int strlength;
-          read(fd_rep, &strlength, sizeof(strlength));
+          uint32_t strlength;
+          read(fd_rep, &strlength, sizeof(uint32_t));
           strlength = htobe32(strlength);
           char* data = malloc(strlength+1);
           read(fd_rep, data, strlength);

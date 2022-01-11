@@ -35,8 +35,8 @@ void start_server() {
          closedir(dirp);
          first_id_available = max + 1;
 
-         close(STDERR_FILENO);
-         close(STDOUT_FILENO);
+         // close(STDERR_FILENO);
+         // close(STDOUT_FILENO);
          break;
       }
       default: {

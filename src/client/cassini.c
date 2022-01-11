@@ -158,6 +158,9 @@ int main(int argc, char * argv[]) {
       break;
 		}
   }
+
+  free(req_pipe);
+  free(rep_pipe);
   
   return EXIT_SUCCESS;
 
