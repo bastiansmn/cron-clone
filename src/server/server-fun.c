@@ -175,20 +175,19 @@ int server_create_task(int fd_req, char* rep_pipe, DIR* tasksdir, uint64_t first
 
          int task_stdout, task_stderr;
          sprintf(t_idname, "/tmp/%s/saturnd/tasks/%d/stdout", username, t_id);
-         task_stdout = open(t_idname, O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
+         task_stdout = open(t_idname, O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU);
          sprintf(t_idname, "/tmp/%s/saturnd/tasks/%d/stderr", username, t_id);
-         task_stderr = open(t_idname, O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
+         task_stderr = open(t_idname, O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU);
 
          sprintf(t_idname, "/tmp/%s/saturnd/tasks/%d/exitcodes", username, t_id);
          fd_task = open(t_idname, O_WRONLY | O_CREAT, S_IRWXU);
-         close(fd_task);
 
          sprintf(t_idname, "/tmp/%s/saturnd/tasks/%d/pid", username, t_id);
-         fd_task = open(t_idname, O_WRONLY | O_CREAT, S_IRWXU);
+         int fd_pid = open(t_idname, O_WRONLY | O_CREAT, S_IRWXU);
          char* temp = malloc(20);
          sprintf(temp, "%d\n", getpid());
-         write(fd_task, temp, strlen(temp));
-         close(fd_task);
+         write(fd_pid, temp, strlen(temp));
+         close(fd_pid);
 
 
          char* minutesstr = malloc(50);
@@ -213,16 +212,16 @@ int server_create_task(int fd_req, char* rep_pipe, DIR* tasksdir, uint64_t first
                sleep(10);
             }
             sleep(60*(minutes) + 3600*(hours) + 24*3600*(daysofweek));
-            // TODO Fix execvp
+            // TODO Fix execvp (renvoie tjr -1)
             err = execvp(toexec[0], toexec);
             
             char* temp = malloc(20);
-            sprintf(temp, "%d:%ld\n", err, time(NULL));
-            int fd = open("debug_f", O_RDWR | O_CREAT | O_TRUNC, S_IRWXU);
-            write(fd, "execvp failed", strlen("execvp failed"));
-            close(fd);
+            sprintf(temp, "%ld:%d\n", time(NULL), err);
+            write(fd_task, temp, strlen(temp));
+            close(fd_task);
          }
 
+         close(fd_task);
          close(task_stdout);
          close(task_stderr);
          exit(EXIT_SUCCESS);

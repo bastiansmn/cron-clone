@@ -5,7 +5,7 @@ uint64_t first_id_available = 0;
 
 void start_server() {
    // TODO : Ne pas relancer le serveur si il est déjà lancé
-   // Chercher les taches existentes et les lancer
+   // TODO : Chercher les taches existentes (taches créées mais sans fichier pid) et les lancer
 
    int pid = fork();
 
@@ -18,8 +18,25 @@ void start_server() {
          // Processus fils
          
          server_pid = getpid();
-         // TODO cherche le plus petit id disponible pour first_id_available
-         // TODO fermer les STDOUT/...
+
+         char* path = malloc(50);
+         char* username = getenv("USER");
+         sprintf(path, "/tmp/%s/saturnd/tasks/", username);
+         DIR* dirp = opendir(path);
+         struct dirent* dp;
+         int max = -1;
+         while ((dp = readdir(dirp))) {
+            if ((strcmp(dp->d_name, ".") != 0) && (strcmp(dp->d_name, "..") != 0)) {
+               int id = atoi(dp->d_name);
+               if (id > max)
+                  max = id;
+            }
+         }
+         closedir(dirp);
+         first_id_available = max + 1;
+
+         close(STDERR_FILENO);
+         close(STDOUT_FILENO);
          break;
       }
       default: {
