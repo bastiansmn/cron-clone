@@ -47,8 +47,6 @@ void start_server() {
 }
 
 int main(int argc, char const *argv[]){
-   
-   start_server();
 
    int err;
    uint16_t op;
@@ -93,6 +91,8 @@ int main(int argc, char const *argv[]){
       perror("rep_pipe");
       exit (EXIT_FAILURE);
    }
+
+   start_server();
 
    int fd_req = -1; 
    int fd_rep = -1;
@@ -155,7 +155,6 @@ int main(int argc, char const *argv[]){
          }
       }
    }
-   //TODO :faire un timeout en cas d'erreur 
    return 0;
 
  error:

@@ -86,8 +86,8 @@ int server_list_task(int fd_req, char* rep_pipe) {
          fd = open(name, O_RDONLY);
          int i = 0;
          // Send all the args of the command
-         buffer = malloc(MAX_BUFFER);
          while(1) {
+            buffer = malloc(MAX_BUFFER);
             err_read = read(fd, buffer, MAX_BUFFER);
             if (err_read > 0) {
                char * token = strtok (buffer, "\n");
@@ -105,6 +105,7 @@ int server_list_task(int fd_req, char* rep_pipe) {
                close(fd);
                break;
             }
+            free(buffer);
          }
       }
    }
@@ -126,20 +127,18 @@ int server_create_task(int fd_req, char* rep_pipe, DIR* tasksdir, uint64_t first
    read(fd_req, &nbargs, sizeof (uint32_t));
    nbargs = htobe32(nbargs);
 
-   char* toexec[nbargs];
-   int command_size = 0;
+   char* toexec[nbargs+1];
 
    for (int i = 0; i < nbargs; i++) {
       uint32_t L;
       read(fd_req, &L, sizeof (uint32_t));
-      L = htobe32(L); 
-      command_size += (L+2);
-      char* val = malloc(L+2);
+      L = htobe32(L);
+      char* val = malloc(L+1);
       read(fd_req, val, L);
-      val[L] = '\n';
-      val[L+1] = '\0';
+      val[L] = '\0';
       toexec[i] = val;
    }
+   toexec[nbargs] = NULL;
    close(fd_req);
 
    char* username = getenv("USER");
@@ -152,16 +151,16 @@ int server_create_task(int fd_req, char* rep_pipe, DIR* tasksdir, uint64_t first
       }
       case 0: {
          // Processus fils
-         int t_id = first_id_available;
+         uint64_t t_id = first_id_available;
          char t_idname[50];
-         sprintf(t_idname, "/tmp/%s/saturnd/tasks/%d", username, t_id);
+         sprintf(t_idname, "/tmp/%s/saturnd/tasks/%ld", username, t_id);
          int err_mkdir = mkdir(t_idname, S_IRUSR | S_IWUSR | S_IXUSR);
          if (errno != EEXIST && err_mkdir == -1) {
             perror("mkdir");
             closedir(tasksdir);
          }
          int fd_task;
-         sprintf(t_idname, "/tmp/%s/saturnd/tasks/%d/command", username, t_id);
+         sprintf(t_idname, "/tmp/%s/saturnd/tasks/%ld/command", username, t_id);
          fd_task = open(t_idname, O_WRONLY | O_CREAT, S_IRWXU | S_IWUSR);
          char tstring[50];
          int pos = timing_string_from_timing(tstring, t);
@@ -169,25 +168,28 @@ int server_create_task(int fd_req, char* rep_pipe, DIR* tasksdir, uint64_t first
          tstring[pos+1] = '\0';
          write(fd_task, tstring, strlen(tstring));
          for (int i = 0; i < nbargs; i++) {
-            write(fd_task, toexec[i], strlen(toexec[i]));
+            char* arg = malloc(strlen(toexec[i])+1);
+            sprintf(arg, "%s\n", toexec[i]);
+            write(fd_task, arg, strlen(arg));
+            free(arg);
          }
          close(fd_task);
 
          int task_stdout, task_stderr;
-         sprintf(t_idname, "/tmp/%s/saturnd/tasks/%d/stdout", username, t_id);
-         task_stdout = open(t_idname, O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU);
-         sprintf(t_idname, "/tmp/%s/saturnd/tasks/%d/stderr", username, t_id);
-         task_stderr = open(t_idname, O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU);
+         sprintf(t_idname, "/tmp/%s/saturnd/tasks/%ld/stdout", username, t_id);
+         task_stdout = open(t_idname, O_WRONLY | O_TRUNC | O_CREAT, S_IRWXU);
+         sprintf(t_idname, "/tmp/%s/saturnd/tasks/%ld/stderr", username, t_id);
+         task_stderr = open(t_idname, O_WRONLY | O_TRUNC | O_CREAT, S_IRWXU);
 
-         sprintf(t_idname, "/tmp/%s/saturnd/tasks/%d/exitcodes", username, t_id);
-         fd_task = open(t_idname, O_WRONLY | O_CREAT, S_IRWXU);
+         sprintf(t_idname, "/tmp/%s/saturnd/tasks/%ld/exitcodes", username, t_id);
+         int fd_exit = open(t_idname, O_WRONLY | O_CREAT, S_IRWXU);
 
-         sprintf(t_idname, "/tmp/%s/saturnd/tasks/%d/pid", username, t_id);
+         sprintf(t_idname, "/tmp/%s/saturnd/tasks/%ld/pid", username, t_id);
          int fd_pid = open(t_idname, O_WRONLY | O_CREAT, S_IRWXU);
          char* temp = malloc(20);
          sprintf(temp, "%d\n", getpid());
          write(fd_pid, temp, strlen(temp));
-         close(fd_pid);
+         free(temp);
 
 
          char* minutesstr = malloc(50);
@@ -206,21 +208,43 @@ int server_create_task(int fd_req, char* rep_pipe, DIR* tasksdir, uint64_t first
          dup2(task_stdout, STDOUT_FILENO);
          dup2(task_stderr, STDERR_FILENO);
 
-         int err = 0;
-         while(err != -1) {
-            if (minutes == 0 && hours == 0 && daysofweek == 0) {
-               sleep(10);
-            }
-            sleep(60*(minutes) + 3600*(hours) + 24*3600*(daysofweek));
-            // TODO Fix execvp (renvoie tjr -1)
-            err = execvp(toexec[0], toexec);
-            
-            char* temp = malloc(20);
-            sprintf(temp, "%ld:%d\n", time(NULL), err);
-            write(fd_task, temp, strlen(temp));
-            close(fd_task);
-         }
+         int err = 1;
+         while(err) {
 
+            int pid = fork();
+            switch (pid) {
+               case -1: {
+                  perror("fork");
+                  exit(EXIT_FAILURE);
+               }
+               case 0: {
+                  // exec
+                  if (minutes == 0 && hours == 0 && daysofweek == 0) {
+                     // TODO revoir le temps
+                     sleep(10);
+                  } else {
+                     sleep(60*minutes + 3600*hours + 3600*24*daysofweek);
+                  }
+                  execvp(toexec[0], toexec);
+                  exit(EXIT_SUCCESS);
+               }
+               default: {
+                  int status;
+                  waitpid(pid, &status, WUNTRACED);
+
+                  if (WIFEXITED(status)) {
+                     char* exitcode = malloc(20);
+                     sprintf(exitcode, "%ld:%d\n", time(NULL), WEXITSTATUS(status));
+                     write(fd_exit, exitcode, strlen(exitcode));
+                  } else {
+                     err = 0;
+                  }
+               }
+            }
+
+         }
+         
+         close(fd_exit);
          close(fd_task);
          close(task_stdout);
          close(task_stderr);
@@ -358,7 +382,6 @@ int server_times_exit(int fd_req, char* rep_pipe) {
       uint32_t nb_runs = htobe32(i);
       write(fd_rep, &nb_runs, sizeof(uint32_t));
       while (1) {
-         free(buffer);
          buffer = malloc(MAX_BUFFER);
          int nb_read = read(fd_task, buffer, MAX_BUFFER);
          if (nb_read <= 0) {
@@ -368,6 +391,7 @@ int server_times_exit(int fd_req, char* rep_pipe) {
          while (token != NULL) {
             char* token2;
             char* rest = token;
+            // TODO : Vérifier la lecture et l'envoi des dates
             token2 = strtok_r(rest, ":", &rest);
             int64_t btime = htobe64(atoi(token2));
             token2 = strtok_r(rest, ":", &rest);
@@ -376,6 +400,7 @@ int server_times_exit(int fd_req, char* rep_pipe) {
             write(fd_rep, &exitcode, sizeof(uint16_t));
             token = strtok(NULL, "\n");
          }
+         free(buffer);
       }
    }
    close(fd_rep);
@@ -414,13 +439,15 @@ int server_stdout(int fd_req, char* rep_pipe) {
       } else {
          reptype = htobe16(SERVER_REPLY_OK);
          write(fd_rep, &reptype, sizeof(uint16_t));
-         char* buffer = malloc(MAX_BUFFER);
+         char* buffer;
          while (1) {
+            buffer = malloc(MAX_BUFFER);
             int nb_read = read(fd_task, buffer, MAX_BUFFER);
             if (nb_read <= 0) {
                break;
             }
             write(fd_rep, buffer, nb_read);
+            free(buffer);
          }
          close(fd_task);
       }
@@ -438,7 +465,7 @@ int server_stderr(int fd_req, char* rep_pipe) {
    char taskdir[50];
    char* username = getenv("USER");
    sprintf(taskdir, "/tmp/%s/saturnd/tasks/%ld/stderr", username, task_id);
-   int fd_task = open(taskdir, O_RDONLY, S_IRWXU);
+   int fd_task = open(taskdir, O_RDWR | O_TRUNC, S_IRWXU);
    int fd_rep = open(rep_pipe, O_WRONLY);
    uint16_t reptype ;
    uint16_t errtype;
@@ -461,13 +488,15 @@ int server_stderr(int fd_req, char* rep_pipe) {
       } else {
          reptype = htobe16(SERVER_REPLY_OK);
          write(fd_rep, &reptype, sizeof(uint16_t));
-         char* buffer = malloc(MAX_BUFFER);
+         char* buffer;
          while (1) {
+            buffer = malloc(MAX_BUFFER);
             int nb_read = read(fd_task, buffer, MAX_BUFFER);
             if (nb_read <= 0) {
                break;
             }
             write(fd_rep, buffer, nb_read);
+            free(buffer);
          }
          close(fd_task);
       }
