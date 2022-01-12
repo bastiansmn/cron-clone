@@ -472,9 +472,9 @@ int server_stderr(int fd_req, char* rep_pipe) {
    char taskdir[50];
    char* username = getenv("USER");
    sprintf(taskdir, "/tmp/%s/saturnd/tasks/%ld/stderr", username, task_id);
-   int fd_task = open(taskdir, O_RDWR | O_TRUNC, S_IRWXU);
-   int fd_rep = open(rep_pipe, O_WRONLY);
-   uint16_t reptype ;
+   int fd_task = open(taskdir, O_RDONLY, S_IRWXU);
+   int fd_rep = open(rep_pipe, O_WRONLY, S_IRWXU);
+   uint16_t reptype;
    uint16_t errtype;
    if (fd_task == -1) {
       reptype = htobe16(SERVER_REPLY_ERROR);
