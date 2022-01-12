@@ -76,10 +76,10 @@ int server_list_task(int fd_req, char* rep_pipe) {
                free(token);
             } else {
                close(fd);
+               free(buffer);
                break;
             }
          }
-         free(buffer);
          
          argc = htobe32(argc);
          write(fd_rep, &argc, sizeof(uint32_t));
@@ -111,7 +111,6 @@ int server_list_task(int fd_req, char* rep_pipe) {
    }
    close(fd_rep);
    closedir(dirp);
-   // TODO : envoyer proprement les taches
    return 0;      
 }
 
@@ -195,15 +194,17 @@ int server_create_task(int fd_req, char* rep_pipe, DIR* tasksdir, uint64_t first
          char* minutesstr = malloc(50);
          timing_string_from_field(minutesstr, 0, 59, t->minutes);
          uint64_t minutes = strtoull(minutesstr, NULL, 10);
+         free(minutesstr);
 
          char* hoursstr = malloc(50);
          timing_string_from_field(hoursstr, 0, 23, t->hours);
          uint32_t hours = strtoul(hoursstr, NULL, 10);
+         free(hoursstr);
 
          char* daysofweekstr = malloc(50);
          timing_string_from_field(daysofweekstr, 0, 6, t->daysofweek);
          uint8_t daysofweek = strtoul(daysofweekstr, NULL, 10);
-
+         free(daysofweekstr);   
          
          dup2(task_stdout, STDOUT_FILENO);
          dup2(task_stderr, STDERR_FILENO);
@@ -236,6 +237,7 @@ int server_create_task(int fd_req, char* rep_pipe, DIR* tasksdir, uint64_t first
                      char* exitcode = malloc(20);
                      sprintf(exitcode, "%ld:%d\n", time(NULL), WEXITSTATUS(status));
                      write(fd_exit, exitcode, strlen(exitcode));
+                     free(exitcode);
                   } else {
                      err = 0;
                   }
@@ -293,10 +295,10 @@ int server_terminate(int fd_req, char* rep_pipe) {
             int pid = atoi(buffer);
             kill(pid, SIGKILL);
          }
-         free(buffer);
          // TODO Supprimer pid pour le récréer au prochain démarrage
       }
    }
+   free(buffer);
    closedir(dirp);
    return EXIT_SUCCESS;
 }
@@ -381,9 +383,8 @@ int server_times_exit(int fd_req, char* rep_pipe) {
             i++;
             token = strtok(NULL, "\n\0");
          }
-         free(token);
-         free(buffer);
       }
+      free(buffer);
       uint32_t nb_runs = htobe32(i);
       write(fd_rep, &nb_runs, sizeof(uint32_t));
       while (1) {
@@ -406,8 +407,8 @@ int server_times_exit(int fd_req, char* rep_pipe) {
             token = strtok(NULL, "\n");
             free(rest);
          }
-         free(buffer);
       }
+      free(buffer);
    }
    close(fd_rep);
    return 0;     
