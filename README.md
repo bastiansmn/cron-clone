@@ -60,3 +60,10 @@ Usage :
    options:
      -p PIPES_DIR -> look for the pipes in PIPES_DIR (default: /tmp/<USERNAME>/saturnd/pipes)
 ```
+
+## Notes :
+
+L'option -x provoque une Segfault, mais nous n'avons pas pu terminer à temps.
+Toutes les autres options sont parfaitement fonctionnelles.
+Cependant, nous n'avons pas encore fait en sorte que lors du redémarrage du démon, les tâches reprennent leur exécution.
+Ce projet à par ailleurs été réalisé à 2 au lieu de 3 personnes conseillées.
